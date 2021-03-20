@@ -6,20 +6,25 @@ import time
 import matplotlib.pyplot as plt
 from IPython.display import display, clear_output
 
-def load_dataset(path, num_cat=345):
-    qd_data = qd.QuickDrawData()
+def load_dataset(path):
+    #qd_data = qd.QuickDrawData()
+    big_mamals = ["camel", "cow", "elephant", "giraffe", "horse", \
+                  "kangoroo", "lion", "panda", "rhinoceros", "tiger", "zebra"]
     img_list = []
-    for category in qd_data.drawing_names[:num_cat]:
+    for category in big_mamals: #qd_data.drawing_names[:num_cat]:
         img_list.append((load_category(path, category), category))
-    
+
+    # TODO
+    # split in train, val, test
+
     return img_list
 
 def load_category(path, category_name):
     return np.load(path+category_name+".npy")
 
 def print_head_category(category):
-    width = 120
-    height = 120
+    width = 250
+    height = 250
     zoom = 1
     count = 0
     for item in category:
@@ -29,7 +34,7 @@ def print_head_category(category):
 
         f_img = Image.fromarray(a)
         img = PIL.ImageOps.invert(f_img)
-        plt.imshow(img.resize((zoom * width, zoom * height), Image.BICUBIC, reducing_gap=3))
+        plt.imshow(img, Image.BICUBIC, reducing_gap=3)
         plt.show()
 
         time.sleep(.5)

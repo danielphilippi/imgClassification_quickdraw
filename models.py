@@ -141,6 +141,7 @@ class ACGAN():
         # Real-fake arrays of labels
         real_labels = np.ones((batch_size, 1))
         fake_labels = np.zeros((batch_size, 1))
+
         for epoch in range(n_epochs):
             ######################
             # Train discriminator#
@@ -162,9 +163,9 @@ class ACGAN():
             d_loss_real = self.discriminator.model.train_on_batch(real_input, [real_labels, real_cat_labels])
             d_loss = 0.5 * (d_loss_real + d_loss_fake)
 
-            ##################
-            # Train Generator#
-            ##################
+            ###################
+            # Train Generator #
+            ###################
 
             # Train the generator
             g_loss = self.model.train_on_batch([noise, noise_cat_labels], [real_labels, real_cat_labels])
@@ -173,6 +174,7 @@ class ACGAN():
             print("%d [D loss: %f, acc.: %.2f%%, op_acc: %.2f%%] [G loss: %f]" % (
                 epoch, d_loss[0], 100 * d_loss[3], 100 * d_loss[4], g_loss[0]))
 
+            self.report(epoch, d_loss[0], 100 * d_loss[3], 100 * d_loss[4], g_loss[0])
             # Saves model and generated images every `sample_interval` epochs
             if epoch % sample_interval == 0:
                 self.save_model()
@@ -209,3 +211,17 @@ class ACGAN():
 
         save(self.generator.model, "generator")
         save(self.discriminator.model, "discriminator")
+
+    # TODO
+    def report(self):
+        return
+
+class Classifier():
+    def __init__(self):
+        pass
+    def build_model(self):
+        pass
+    def train(self):
+        pass
+    def report(self):
+        pass
