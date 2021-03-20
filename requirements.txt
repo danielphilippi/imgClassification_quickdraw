@@ -8,5 +8,4 @@ sklearn==0.0
 tensorflow==2.4.1
 pydot==1.4.2
 graphviz==0.16
-quickdraw-0.2.0
-
+quickdraw==0.2.0
