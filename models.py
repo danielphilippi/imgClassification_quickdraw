@@ -7,40 +7,23 @@ from keras.layers.convolutional import UpSampling2D, Conv2D
 from keras.layers import Input, Dense, Reshape, Flatten, Embedding, multiply, Dropout, Activation, BatchNormalization, ZeroPadding2D
 from keras.layers.advanced_activations import LeakyReLU
 
-
 class Generator():
-    def __init__(self, input_shape, num_cat, latent_dim, optimizer, n_channels=1):
+    def __init__(self, input_shape, num_cat, latent_dim, optimizer, gen, n_channels=1):
         self.input_shape = input_shape
         self.num_cat = num_cat
         self.latent_dim = latent_dim
         self.optimizer = optimizer
         self.n_channels = n_channels
 
-        self.model = self.build_generator()
+        self.model = self.build_generator(gen)
 
         self.model.compile(
             optimizer=self.optimizer,
             loss='binary_crossentropy'
         )
 
-    def build_generator(self):
-
-        cnn_model = Sequential()
-
-        cnn_model.add(Dense(128 * 7 * 7, activation="relu", input_dim=self.latent_dim))
-        cnn_model.add(Reshape((7, 7, 128)))
-        cnn_model.add(BatchNormalization(momentum=0.8))
-        cnn_model.add(UpSampling2D())
-        cnn_model.add(Conv2D(128, kernel_size=3, padding="same"))
-        cnn_model.add(Activation("relu"))
-        cnn_model.add(BatchNormalization(momentum=0.8))
-        cnn_model.add(UpSampling2D())
-        cnn_model.add(Conv2D(64, kernel_size=3, padding="same"))
-        cnn_model.add(Activation("relu"))
-        cnn_model.add(BatchNormalization(momentum=0.8))
-        cnn_model.add(Conv2D(self.n_channels, kernel_size=3, padding='same'))
-        cnn_model.add(Activation("tanh"))
-
+    def build_generator(self, gen):
+        cnn_model = gen
 
         # this is the z space commonly referred to in GAN papers
         latent_space = Input(shape=(self.latent_dim,))
@@ -107,7 +90,7 @@ class Discriminator():
 
 
 class ACGAN():
-    def __init__(self, input_shape=(28, 28, 1), num_cat=400, latent_dim=100):
+    def __init__(self, generator, disciminator, input_shape=(28, 28, 1), num_cat=400, latent_dim=100):
         self.input_shape = input_shape
         self.num_cat = num_cat
         self.latent_dim = latent_dim
@@ -118,7 +101,7 @@ class ACGAN():
         self.optimizer = Adam(lr, beta_1)
 
         self.discriminator = Discriminator(self.input_shape, self.num_cat, self.optimizer)
-        self.generator = Generator(self.input_shape, self.num_cat, self.latent_dim, self.optimizer)
+        self.generator = Generator(self.input_shape, self.num_cat, self.latent_dim, self.optimizer, generator)
 
         self.discriminator.model.trainable = False
 

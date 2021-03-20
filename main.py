@@ -2,6 +2,9 @@ import models
 from data_manager import load_dataset
 import os
 
+from mods.generator import gen_1
+
+
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     # Load the dataset
@@ -11,7 +14,7 @@ if __name__ == '__main__':
     n_epochs = 10000    # Until convergence or infinity
     batch_size = 50
 
-    acgan = models.ACGAN()
+    acgan = models.ACGAN(generator=gen_1)
     acgan.train(x_train, y_train, n_epochs, batch_size)
 
     """
