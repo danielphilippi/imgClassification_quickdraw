@@ -7,6 +7,7 @@ from keras.layers.convolutional import UpSampling2D, Conv2D, MaxPooling2D
 from keras.layers import Input, Dense, Reshape, Flatten, Embedding, multiply, Dropout, Activation, BatchNormalization, ZeroPadding2D
 from keras.layers.advanced_activations import LeakyReLU
 from keras.preprocessing.image import ImageDataGenerator
+from sklearn.metrics import classification_report, confusion_matrix
 
 
 class Classifier():
@@ -51,21 +52,23 @@ class Classifier():
         train_datagen = ImageDataGenerator(rescale=1./255)
         test_datagen = ImageDataGenerator(rescale=1./255)
 
-        train_generator = train_datagen.flow_from_directory(
+        train_set = train_datagen.flow_from_directory(
                                 train_dir, # target directory
                                 target_size = (150,150), #resizes all images by 150 x 150
                                 batch_size = 20,
                                 class_mode='binary') # because you use binary_crossentropy, need binary labels
     
-        validation_generator = train_datagen.flow_from_directory(
+        test_set = train_datagen.flow_from_directory(
                                 validation_dir, 
                                 target_size = (150,150), 
                                 batch_size = 20,
                                 class_mode='binary')
+
+        training_set.class_indices
         
-        history = cnn_model.fit(train_generator, steps_per_epoch=100,
+        history = cnn_model.fit(train_set, steps_per_epoch=100,
         epochs=30,
-        validation_data=validation_generator,
+        validation_data=test_set,
         validation_steps=50)
 
         return history
@@ -80,7 +83,7 @@ class Classifier():
         open(options['file_arch'], 'w').write(json_string)
         model.save_weights(options['file_weight'])
 
-    def metrics(self):
+    def plot_model(self):
 
         acc = history.history['acc']
         val_acc = history.history['val_acc']
@@ -102,6 +105,18 @@ class Classifier():
         plt.legend()
 
         plt.show()
+
+    def metrics(self):
+        # if you have the last version of tensorflow, the predict_generator is deprecated.
+        # you should use the predict method.
+        # if you do not have the last version, you must use predict_generator
+        Y_pred = classifier.predict(test_set, 63) # ceil(num_of_test_samples / batch_size)
+        Y_pred = (Y_pred>0.5)
+        print('Confusion Matrix')
+        print(confusion_matrix(test_set.classes, Y_pred))
+        print('Classification Report')
+        target_names = ['Cats', 'Dogs']
+        print(classification_report(test_set.classes, Y_pred, target_names=target_names))
 
     # TODO
     def report(self):
