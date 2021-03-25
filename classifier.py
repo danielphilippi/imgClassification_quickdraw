@@ -119,8 +119,8 @@ class Classifier:
         # Todo: generate instance fig and return fig
         fig = plt.figure()
 
-        plt.plot(epochs, acc, 'bo', label = 'Training acc')
-        plt.plot(epochs, val_acc, 'b', label = 'Validation acc')
+        plt.plot(epochs, acc, 'bo', label='Training acc')
+        plt.plot(epochs, val_acc, 'b', label='Validation acc')
         plt.title('Training and validation accuracy')
         plt.legend()
 

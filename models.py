@@ -4,26 +4,93 @@ import matplotlib.pyplot as plt
 from keras.models import Sequential, Model
 from keras.optimizers import Adam
 from keras.layers.convolutional import UpSampling2D, Conv2D
-from keras.layers import Input, Dense, Reshape, Flatten, Embedding, multiply, Dropout, Activation, BatchNormalization, ZeroPadding2D
+from keras.layers import Input, Dense, Reshape, Flatten, Embedding, multiply, Dropout, Activation, BatchNormalization, \
+    ZeroPadding2D, MaxPooling2D
 from keras.layers.advanced_activations import LeakyReLU
+from sklearn.metrics import classification_report, confusion_matrix
+from keras.preprocessing.image import ImageDataGenerator
 
-class Generator():
-    def __init__(self, input_shape, num_cat, latent_dim, optimizer, gen, n_channels=1):
+
+class ModelClass:
+    def __init__(self):
+        self.history = None
+        self.report = None
+        self.confusion_matrix = None
+
+    def train(self):
+        pass
+
+    # TODO: picklyze this method
+    def save_model(self):
+        def save(model, model_name):
+            model_path = "saved_model/%s.json" % model_name
+            weights_path = "saved_model/%s_weights.hdf5" % model_name
+            options = {"file_arch": model_path,
+                       "file_weight": weights_path}
+            json_string = model.to_json()
+            open(options['file_arch'], 'w').write(json_string)
+            model.save_weights(options['file_weight'])
+
+        save(self.model, "classifier")
+
+    def plot_model(self):
+        acc = self.history['acc']
+        val_acc = self.history['val_acc']
+        loss = self.history['loss']
+        val_loss = self.history['val_loss']
+
+        epochs = range(1, len(acc) + 1)
+
+        fig, axs = plt.subplots(2)
+
+        axs[0].plot(epochs, acc, 'bo', label='Training acc')
+        axs[0].plot(epochs, val_acc, 'b', label='Validation acc')
+        axs[0].set_title('Training and validation accuracy')
+        axs[0].legend()
+
+        axs[1].plot(epochs, loss, 'bo', label='Training loss')
+        axs[1].plot(epochs, val_loss, 'b', label='Validation loss')
+        axs[1].set_title('Training and validation loss')
+        axs[1].legend()
+
+        fig.show()
+        return fig
+
+    def evaluate(self, test_set):
+        # if you have the last version of tensorflow, the predict_generator is deprecated.
+        # you should use the predict method.
+        # if you do not have the last version, you must use predict_generator
+        y_pred = self.model.predict(test_set, 63)  # ceil(num_of_test_samples / batch_size)
+        y_pred = (y_pred > 0.5)
+        """print('Confusion Matrix')
+        self.confusion_matrix = confusion_matrix(test_set.classes, y_pred)
+        print(self.confusion_matrix)"""
+        print('Classification Report')
+        # TODO: check if this work
+        target_names = list(set(test_set.classes.keys))  # I'm pretty sure this is not the way
+        self.report = classification_report(test_set.classes, y_pred, target_names=target_names)
+        print(self.report)
+        return self.report
+
+
+class Generator(ModelClass):
+    def __init__(self, input_shape, num_cat, latent_dim, optimizer, cnn, n_channels=1):
+        super().__init__()
         self.input_shape = input_shape
         self.num_cat = num_cat
         self.latent_dim = latent_dim
         self.optimizer = optimizer
         self.n_channels = n_channels
-
-        self.model = self.build_generator(gen)
+        self.cnn = cnn(self.latent_dim, self.n_channels)
+        self.model = self.build_generator()
 
         self.model.compile(
             optimizer=self.optimizer,
             loss='binary_crossentropy'
         )
 
-    def build_generator(self, gen):
-        cnn_model = gen
+    def build_generator(self):
+        cnn_model = self.cnn
 
         # this is the z space commonly referred to in GAN papers
         latent_space = Input(shape=(self.latent_dim,))
@@ -40,13 +107,16 @@ class Generator():
 
         return Model(inputs=[latent_space, input_cat], outputs=complete_generator)
 
+    # TODO check if parent evaluate function is valid
 
-class Discriminator():
-    def __init__(self, input_shape, num_cat, optimizer):
+
+class Discriminator(ModelClass):
+    def __init__(self, input_shape, num_cat, optimizer, cnn):
+        super().__init__()
         self.input_shape = input_shape
         self.num_cat = num_cat
         self.optimizer = optimizer
-
+        self.cnn = cnn(self.input_shape)
         self.model = self.build_discriminator()
 
         # First loss for fake-real classification. Second loss for categorical input classification
@@ -56,23 +126,7 @@ class Discriminator():
         )
 
     def build_discriminator(self):
-        cnn_model = Sequential()
-
-        cnn_model.add(Conv2D(16, kernel_size=3, strides=2, input_shape=self.input_shape, padding="same"))
-        cnn_model.add(LeakyReLU(alpha=0.2))
-        cnn_model.add(Dropout(0.25))
-        cnn_model.add(Conv2D(32, kernel_size=3, strides=2, padding="same"))
-        cnn_model.add(ZeroPadding2D(padding=((0, 1), (0, 1))))
-        cnn_model.add(LeakyReLU(alpha=0.2))
-        cnn_model.add(Dropout(0.25))
-        cnn_model.add(BatchNormalization(momentum=0.8))
-        cnn_model.add(Conv2D(64, kernel_size=3, strides=2, padding="same"))
-        cnn_model.add(LeakyReLU(alpha=0.2))
-        cnn_model.add(Dropout(0.25))
-        cnn_model.add(BatchNormalization(momentum=0.8))
-        cnn_model.add(Conv2D(128, kernel_size=3, strides=1, padding="same"))
-        cnn_model.add(LeakyReLU(alpha=0.2))
-        cnn_model.add(Dropout(0.25))
+        cnn_model = self.cnn
 
         cnn_model.add(Flatten())
 
@@ -88,9 +142,12 @@ class Discriminator():
 
         return Model(d_input, [fake_real, target_label])
 
+    # TODO check if parent evaluate function is valid
 
-class ACGAN():
-    def __init__(self, generator, disciminator, input_shape=(28, 28, 1), num_cat=400, latent_dim=100):
+
+class ACGAN(ModelClass):
+    def __init__(self, cnn_gen, cnn_dis, input_shape=(28, 28, 1), num_cat=400, latent_dim=100):
+        super().__init__()
         self.input_shape = input_shape
         self.num_cat = num_cat
         self.latent_dim = latent_dim
@@ -100,8 +157,8 @@ class ACGAN():
         beta_1 = 0.5
         self.optimizer = Adam(lr, beta_1)
 
-        self.discriminator = Discriminator(self.input_shape, self.num_cat, self.optimizer)
-        self.generator = Generator(self.input_shape, self.num_cat, self.latent_dim, self.optimizer, generator)
+        self.discriminator = Discriminator(self.input_shape, self.num_cat, self.optimizer, cnn_dis)
+        self.generator = Generator(self.input_shape, self.num_cat, self.latent_dim, self.optimizer, cnn_gen)
 
         self.discriminator.model.trainable = False
 
@@ -196,15 +253,67 @@ class ACGAN():
         save(self.discriminator.model, "discriminator")
 
     # TODO
-    def report(self):
-        return
+    def evaluate(self):
+        pass
 
-class Classifier():
-    def __init__(self):
-        pass
-    def build_model(self):
-        pass
-    def train(self):
-        pass
-    def report(self):
-        pass
+
+class Classifier(ModelClass):
+    def __init__(self, classifier, optimizer, input_shape=(28, 28, 1), num_cat=11):
+        super().__init__()
+        self.input_shape = input_shape
+        self.optimizer = optimizer
+        self.num_cat = num_cat
+
+        self.model = self.build_classifier(classifier)
+        self.model.compile(
+            optimizer=self.optimizer,
+            loss='sparse_categorical_crossentropy'
+        )
+
+        self.num_img = None
+        self.history = None
+        self.confusion_matrix = None
+        self.report = None
+
+    def build_classifier(self, classifier):
+        cnn_model = classifier(self.input_shape, self.num_cat)
+        # model.summary()
+
+        return cnn_model
+
+    @staticmethod
+    # Todo: move to data_manager module
+    def preprocess(self, train_dir, validation_dir):
+        # rescale all images by 1/255
+        train_datagen = ImageDataGenerator(rescale=1. / 255)
+        test_datagen = ImageDataGenerator(rescale=1. / 255)
+
+        # Todo(DP): limit number of imgs passed from the dir to the generator
+        # Todo (DP): train / test split inside ImageDataGenerator
+        # Todo (DP):
+        train_set = train_datagen.flow_from_directory(
+            train_dir,  # target directory
+            target_size=(28, 28),
+            batch_size=20,
+            class_mode='categorical')
+
+        test_set = test_datagen.flow_from_directory(
+            validation_dir,
+            target_size=(28, 28),
+            batch_size=20,
+            class_mode='categorical')
+
+        train_set.class_indices
+
+        return train_set, test_set
+
+    # Todo: make args part of self
+    def train(self, train_set, test_set):
+        self.num_img = train_set.shape[0]
+        self.history = self.model.fit(
+            train_set,
+            steps_per_epoch=100,
+            epochs=30,
+            validation_data=test_set,
+            validation_steps=50
+        )
