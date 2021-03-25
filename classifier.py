@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-
+import os
 from keras.models import Sequential, Model
 from keras.optimizers import Adam
 from keras.layers.convolutional import UpSampling2D, Conv2D, MaxPooling2D
@@ -8,22 +8,23 @@ from keras.layers import Input, Dense, Reshape, Flatten, Embedding, multiply, Dr
 from keras.layers.advanced_activations import LeakyReLU
 from keras.preprocessing.image import ImageDataGenerator
 from sklearn.metrics import classification_report, confusion_matrix
+from data_manager import load_dataset
 
 
 class Classifier():
-    def __init__(self, input_shape, num_cat, optimizer):
+    def __init__(self, classifier, optimizer, input_shape=(28, 28, 1), num_cat=11):
         self.input_shape = input_shape
         self.num_cat = num_cat
         self.optimizer = optimizer
 
-        self.model = self.build_classifier(self)
+        self.model = self.build_classifier(classifier)
 
         self.model.compile(
             optimizer=self.optimizer,
             loss='sparse_categorical_crossentropy'
         )
 
-    def build_classifier(self):
+    def build_classifier(self, classifier):
         cnn_model = Sequential()
 
         cnn_model.add(Conv2D(32, (3,3), activation = 'relu',
@@ -47,7 +48,7 @@ class Classifier():
 
         return cnn_model
 
-    def train(self, train_dir, validation_dir):
+    def preprocess(self, train_dir, validation_dir):
         # rescale all images by 1/255
         train_datagen = ImageDataGenerator(rescale=1./255)
         test_datagen = ImageDataGenerator(rescale=1./255)
@@ -58,32 +59,41 @@ class Classifier():
                                 batch_size = 20,
                                 class_mode='binary') # because you use binary_crossentropy, need binary labels
     
-        test_set = train_datagen.flow_from_directory(
+        test_set = test_datagen.flow_from_directory(
                                 validation_dir, 
                                 target_size = (150,150), 
                                 batch_size = 20,
                                 class_mode='binary')
 
-        training_set.class_indices
+        train_set.class_indices
+
+        return train_set, test_set
+    
+    def train(self, train_set, test_set):
         
-        history = cnn_model.fit(train_set, steps_per_epoch=100,
+        history = self.model.fit(train_set, steps_per_epoch=100,
         epochs=30,
         validation_data=test_set,
         validation_steps=50)
 
         return history
 
-    def save(model, model_name):
+    
+    def save_model(self):
 
-        model_path = "saved_model/%s.json" % model_name
-        weights_path = "saved_model/%s_weights.hdf5" % model_name
-        options = {"file_arch": model_path,
-                    "file_weight": weights_path}
-        json_string = model.to_json()
-        open(options['file_arch'], 'w').write(json_string)
-        model.save_weights(options['file_weight'])
+        def save(model, model_name):
+            model_path = "saved_model/%s.json" % model_name
+            weights_path = "saved_model/%s_weights.hdf5" % model_name
+            options = {"file_arch": model_path,
+                       "file_weight": weights_path}
+            json_string = model.to_json()
+            open(options['file_arch'], 'w').write(json_string)
+            model.save_weights(options['file_weight'])
 
-    def plot_model(self):
+        save(self.model, "classifier")
+
+        
+    def plot_model(self, history):
 
         acc = history.history['acc']
         val_acc = history.history['val_acc']
@@ -106,11 +116,11 @@ class Classifier():
 
         plt.show()
 
-    def metrics(self):
+    def metrics(self, test_set):
         # if you have the last version of tensorflow, the predict_generator is deprecated.
         # you should use the predict method.
         # if you do not have the last version, you must use predict_generator
-        Y_pred = classifier.predict(test_set, 63) # ceil(num_of_test_samples / batch_size)
+        Y_pred = self.model.predict(test_set, 63) # ceil(num_of_test_samples / batch_size)
         Y_pred = (Y_pred>0.5)
         print('Confusion Matrix')
         print(confusion_matrix(test_set.classes, Y_pred))
