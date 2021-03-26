@@ -176,25 +176,6 @@ def build_set_generators(classes, max_imgs_per_class=10000, vali_ratio=.2, test_
     return train_generator, validation_generator, test_generator, class_names
 
 
-# TODO: move to main
-"""
-big_mamals = [
-    "camel", "cow", "elephant", "giraffe", "horse",
-    "kangoroo", "lion", "panda", "rhinoceros", "tiger", "zebra"
-]
-n_classes = 3
-class_list = big_mamals[0:n_classes]
-
-train_generator, validation_generator, test_generator, class_names_ = build_set_generators(
-    classes=class_list,
-    max_imgs_per_class=10000,
-    vali_ratio=.2,
-    test_ratio=.2,
-    batch_size=32
-)
-"""
-
-
 def load_dataset(path):
     #qd_data = qd.QuickDrawData()
     big_mamals = ["camel", "cow", "elephant", "giraffe", "horse", \
