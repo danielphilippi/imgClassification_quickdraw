@@ -1,6 +1,6 @@
 import os
 
-DATA_PATH = '../data/'
+DATA_PATH = 'data/'
 NPY_PATH = os.path.join(DATA_PATH, 'npy/')
 TRAIN_IMG_PATH = os.path.join(DATA_PATH, 'train/')
 TEST_IMG_PATH = os.path.join(DATA_PATH, 'test/')
