@@ -8,82 +8,43 @@ from keras.layers import Input, Dense, Reshape, Flatten, Embedding, multiply, Dr
     ZeroPadding2D
 from keras.layers.advanced_activations import LeakyReLU
 from keras.preprocessing.image import ImageDataGenerator
+from keras.callbacks import EarlyStopping
+
 from sklearn.metrics import classification_report, confusion_matrix
 from data_manager import load_dataset
 
 
 # Todo move to models.py
 class Classifier:
-    def __init__(self, classifier, optimizer, input_shape=(28, 28, 1), num_cat=11):
+    def __init__(self, img_gen_config, classifier, optimizer, input_shape=(28, 28, 1)):
+        self.img_gen_config = img_gen_config
         self.input_shape = input_shape
-        self.num_cat = num_cat
+        self.num_cat = len(img_gen_config['classes'])
         self.num_img = None
+        self.class_names = None
+
         self.optimizer = optimizer
         self.history = None
-        self.model = self.build_classifier(classifier)
+        self.model = classifier(self.input_shape, self.num_cat)
+        self.train_config = None
 
         self.model.compile(
+            loss='categorical_crossentropy',
             optimizer=self.optimizer,
-            loss='sparse_categorical_crossentropy'
+            metrics=['categorical_accuracy']
         )
+        self.mode_summary = self.model.summary()
 
         self.conf_mat = None
         self.report = None
 
     # Todo move definition to mods.classifier and pass to the class
     def build_classifier(self, classifier):
-        cnn_model = Sequential()
-
-        cnn_model.add(
-            Conv2D(32, (3, 3), activation='relu',
-                   input_shape=self.input_shape))
-        cnn_model.add(MaxPooling2D((2, 2)))
-        cnn_model.add(Conv2D(64, (3, 3), activation = 'relu'))
-        cnn_model.add(MaxPooling2D((2, 2)))
-        cnn_model.add(Conv2D(128, (3, 3), activation = 'relu'))
-        cnn_model.add(MaxPooling2D((2, 2)))
-        cnn_model.add(Conv2D(128, (3, 3), activation = 'relu'))
-        cnn_model.add(MaxPooling2D((2, 2)))
-        
-        cnn_model.add(Flatten())
-        
-        cnn_model.add(Dropout(0.5)) # add?
-
-        cnn_model.add(Dense(512, activation='relu'))
-        cnn_model.add(Dense(self.num_cat, activation='softmax'))
-
-        # model.summary()     
-
+        cnn_model = classifier()
         return cnn_model
 
-    @staticmethod
-    # Todo: move to data_manager module
-    def preprocess(self, train_dir, validation_dir):
-        # rescale all images by 1/255
-        train_datagen = ImageDataGenerator(rescale=1./255)
-        test_datagen = ImageDataGenerator(rescale=1./255)
-
-        # Todo(DP): limit number of imgs passed from the dir to the generator
-        # Todo (DP): train / test split inside ImageDataGenerator
-        # Todo (DP): 
-        train_set = train_datagen.flow_from_directory(
-                                train_dir, # target directory
-                                target_size = (28, 28),
-                                batch_size = 20,
-                                class_mode='categorical')
-    
-        test_set = test_datagen.flow_from_directory(
-                                validation_dir, 
-                                target_size = (28, 28),
-                                batch_size = 20,
-                                class_mode='categorical')
-
-        train_set.class_indices
-
-        return train_set, test_set
-
     # Todo: make args part of self
-    def train(self, train_set, test_set):
+    def _train(self, train_set, test_set):
         self.num_img = train_set.shape[0]
         self.history = self.model.fit(
             train_set,
@@ -91,6 +52,27 @@ class Classifier:
             epochs=30,
             validation_data=test_set,
             validation_steps=50
+        )
+    # https://machinelearningmastery.com/how-to-stop-training-deep-neural-networks-at-the-right-time-using-early-stopping/
+
+    # es = EarlyStopping(monitor='val_categorical_accuracy', mode='max', min_delta=1, verbose=1, patience=3)
+
+    def train(self, train_generator, validation_generator, train_config):
+        self.train_config = train_config
+        callbacks = []
+        if 'early_stopping' in train_config['callbacks'].keys():
+            es = EarlyStopping(**train_config['callbacks']['early_stopping'])
+            callbacks.append(es)
+
+        batch_size = self.img_gen_config['batch_size']
+
+        history = self.model.fit(
+            train_generator,
+            steps_per_epoch=train_generator.n // batch_size,
+            validation_data=validation_generator,
+            validation_steps=validation_generator.n // batch_size,
+            epochs=self.train_config['n_epochs'],
+            callbacks=callbacks
         )
 
     def save_model(self):
