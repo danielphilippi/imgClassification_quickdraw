@@ -128,12 +128,13 @@ def _prepare_img_for_generator(classes, test_ratio, max_imgs_per_class, mode='ar
     elif mode == 'array':
         seed(22)
         rand_idx = sample([i for i in range(x_train.shape[0])], x_train.shape[0])
+        x_train, y_train = x_train[rand_idx], y_train[rand_idx]
 
         num_classes = len(classes)
         y_train = to_categorical(y_train, num_classes)
         y_test = to_categorical(y_test, num_classes)
 
-        return x_train[rand_idx], y_train[rand_idx], x_test, y_test, class_names
+        return x_train, y_train, x_test, y_test, class_names
 
 
 def build_set_generators(classes, max_imgs_per_class=10000, vali_ratio=.2, test_ratio=.2, batch_size=32):
