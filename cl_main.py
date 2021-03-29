@@ -1,6 +1,6 @@
 
 from data_manager import build_set_generators
-from classifier import Classifier
+from models import Classifier
 from mods.classifier import cnn_test_dp
 
 if __name__ == '__main__':
@@ -43,5 +43,3 @@ if __name__ == '__main__':
     }
 
     cl.train(train_generator, validation_generator, train_config)
-
-
