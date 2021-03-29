@@ -335,7 +335,7 @@ class Classifier:
         save(self.model, "classifier")
 
     # Todo: move to helper fcts module
-    def plot_model(self):
+    def plot_model(self, epochs):
 
         acc = self.history['acc']
         val_acc = self.history['val_acc']
@@ -344,20 +344,24 @@ class Classifier:
 
         epochs = range(1, len(acc) + 1)
 
-        # Todo: generate instance fig and return fig
+        # generate instance fig and return fig
         fig = plt.figure()
+        ax1 = fig.add_subplot(2,1,1)
+        ax2 = fig.add_subplot(2,1,2)
 
-        plt.plot(epochs, acc, 'bo', label='Training acc')
-        plt.plot(epochs, val_acc, 'b', label='Validation acc')
-        plt.title('Training and validation accuracy')
-        plt.legend()
 
-        plt.plot(epochs, loss, 'bo', label='Training loss')
-        plt.plot(epochs, val_loss, 'b', label='Validation loss')
-        plt.title('Training and validation loss')
-        plt.legend()
+        ax1.plot(epochs, acc, 'bo', label='Training acc')
+        ax1.plot(epochs, val_acc, 'b', label='Validation acc')
+        ax1.title('Training and validation accuracy')
+        ax1.legend()
 
-        plt.show()
+        ax2.plot(epochs, loss, 'bo', label='Training loss')
+        ax2.plot(epochs, val_loss, 'b', label='Validation loss')
+        ax2.title('Training and validation loss')
+        ax2.legend()
+
+        fig.show()
+        return fig
 
     def evaluate(self, test_set):
         # if you have the last version of tensorflow, the predict_generator is deprecated.
@@ -369,6 +373,6 @@ class Classifier:
         self.conf_mat = confusion_matrix(test_set.classes, y_pred)
         print(self.conf_mat)
         print('Classification Report')
-        target_names = ['Cats', 'Dogs']
+        target_names = test_set.class_names.unique()
         self.report = classification_report(test_set.classes, y_pred, target_names=target_names)
         print(self.report)
