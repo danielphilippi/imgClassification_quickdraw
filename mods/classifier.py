@@ -48,12 +48,12 @@ def cnn_test_dp(input_shape, n_classes):
     return model
 
 
-def cnn_test_dm():
+def cnn_test_dm(input_shape, n_classes):
     cnn_model = Sequential()
 
     cnn_model.add(
         Conv2D(32, (3, 3), activation='relu',
-               input_shape=self.input_shape))
+               input_shape=input_shape))
     cnn_model.add(MaxPooling2D((2, 2)))
     cnn_model.add(Conv2D(64, (3, 3), activation='relu'))
     cnn_model.add(MaxPooling2D((2, 2)))
@@ -67,7 +67,7 @@ def cnn_test_dm():
     cnn_model.add(Dropout(0.5))  # add?
 
     cnn_model.add(Dense(512, activation='relu'))
-    cnn_model.add(Dense(self.num_cat, activation='softmax'))
+    cnn_model.add(Dense(n_classes, activation='softmax'))
 
     # model.summary()
     return cnn_model
