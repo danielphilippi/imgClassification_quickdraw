@@ -378,7 +378,7 @@ class Classifier(ModelClass):
             'duration': [str(self.train_duration).replace('.', ',')],
             'date': [datetime.now().strftime("%Y-%m-%d")],
             'time': [datetime.now().strftime("%H:%M:%S")],
-                'user': [getpass.getuser()],
+            'user': [getpass.getuser()],
             'compare': [None]
         })
 

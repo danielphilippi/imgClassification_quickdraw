@@ -19,7 +19,7 @@ if __name__ == '__main__':
         'vali_ratio': .2,
         'test_ratio': .2,
         'batch_size': 32,
-        'data_augmentation': None,
+        'data_augmentation': None, # include GAN imgs
         'train_img_randomization': {} # args passed to ImageDataGenerator
     }
     train_generator, validation_generator, test_generator, class_names = build_set_generators(**img_gen_config)
