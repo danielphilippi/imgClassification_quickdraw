@@ -91,13 +91,13 @@ def _prepare_img_for_generator(classes, test_ratio, max_imgs_per_class, mode='ar
         x = np.load(tmp_path)
         print('Shape of raw data: ', x.shape)
 
-        # rescale to [0,1]
-        x = x.astype(np.float64)
-        x *= 1 / x.max()
-
         if max_imgs_per_class is not None:
             rand_idx = sample([i for i in range(x.shape[0])], max_imgs_per_class)
             x = x[rand_idx, :]
+
+        # rescale to [0,1]
+        x = x.astype(np.float64)
+        x *= 1 / x.max()
 
         # stratify: memorize abs train size of first class
         if train_size is None:
