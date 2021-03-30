@@ -33,8 +33,9 @@ if not os.path.isfile(MODEL_OVERVIEW_FILE_ABS):
         'duration': [],
         'date': [],
         'time': [],
-        'user': []
-    }).to_csv(MODEL_OVERVIEW_FILE_ABS, index=False)
+        'user': [],
+        'compare': []
+    }).to_csv(MODEL_OVERVIEW_FILE_ABS, index=False, sep=';')
 
 CONFIG_FILE_REL = 'config.json'
 MODEL_FILE_REL = 'model.h5'

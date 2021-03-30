@@ -359,7 +359,7 @@ class Classifier(ModelClass):
     # TODO(DP) use binary instead of json?!
     def save(self):
 
-        overview = pd.read_csv(MODEL_OVERVIEW_FILE_ABS)
+        overview = pd.read_csv(MODEL_OVERVIEW_FILE_ABS, sep=';')
 
         if len(overview.run_id) == 0:
             run_id = 1
@@ -377,13 +377,14 @@ class Classifier(ModelClass):
             'run_id': [run_id],
             'path_rel': [model_path_rel],
             'accuracy': [None],
-            'duration': [self.train_duration],
+            'duration': [str(self.train_duration).replace('.', ',')],
             'date': [datetime.now().strftime("%Y-%m-%d")],
             'time': [datetime.now().strftime("%H:%M:%S")],
-            'user': [getpass.getuser()]
+            'user': [getpass.getuser()],
+            'compare': [None]
         })
 
-        pd.concat([overview, overview_new]).to_csv(MODEL_OVERVIEW_FILE_ABS, index=False)
+        pd.concat([overview, overview_new]).to_csv(MODEL_OVERVIEW_FILE_ABS, index=False, sep=';')
 
         # save config
         config = {
