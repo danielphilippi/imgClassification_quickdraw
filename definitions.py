@@ -3,6 +3,8 @@ import pandas as pd
 joinpath = os.path.join
 
 BASE_PATH = os.path.dirname(os.path.realpath(__file__))
+os.chdir(BASE_PATH)
+
 print(f'set base dir to {BASE_PATH}')
 
 DATA_PATH = joinpath(BASE_PATH, 'data/')
