@@ -18,7 +18,10 @@ if __name__ == '__main__':
         'max_imgs_per_class': 100,
         'vali_ratio': .2,
         'test_ratio': .2,
-        'batch_size': 32
+        'batch_size': 32,
+        'data_augmentation': {
+
+        }
     }
     train_generator, validation_generator, test_generator, class_names = build_set_generators(**img_gen_config)
 
@@ -44,10 +47,7 @@ if __name__ == '__main__':
     }
 
     # cl.train(train_generator, validation_generator, train_config)
-
-    cl.train_from_array(x_train=train_generator.x, y_train=train_generator.y,
-                        x_val=validation_generator.x, y_val=validation_generator.y,
-                        train_config=train_config)
+    cl.train_from_array(train_generator, validation_generator, train_config)
 
     cl
 

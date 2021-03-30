@@ -91,6 +91,10 @@ def _prepare_img_for_generator(classes, test_ratio, max_imgs_per_class, mode='ar
         x = np.load(tmp_path)
         print('Shape of raw data: ', x.shape)
 
+        # rescale to [0,1]
+        x = x.astype(np.float64)
+        x *= 1 / x.max()
+
         if max_imgs_per_class is not None:
             rand_idx = sample([i for i in range(x.shape[0])], max_imgs_per_class)
             x = x[rand_idx, :]
@@ -137,7 +141,7 @@ def _prepare_img_for_generator(classes, test_ratio, max_imgs_per_class, mode='ar
         return x_train, y_train, x_test, y_test, class_names
 
 
-def build_set_generators(classes, max_imgs_per_class=10000, vali_ratio=.2, test_ratio=.2, batch_size=32):
+def build_set_generators(classes, max_imgs_per_class=10000, vali_ratio=.2, test_ratio=.2, batch_size=32, **kwargs):
     x_train, y_train, x_test, y_test, class_names = _prepare_img_for_generator(
         classes=classes,
         test_ratio=test_ratio,
@@ -145,7 +149,7 @@ def build_set_generators(classes, max_imgs_per_class=10000, vali_ratio=.2, test_
     )
 
     train_datagen = ImageDataGenerator(
-        rescale=1. / 255,
+        # rescale=1. / 255,
         validation_split=vali_ratio)  # set validation split
 
     train_generator = train_datagen.flow(
@@ -164,7 +168,7 @@ def build_set_generators(classes, max_imgs_per_class=10000, vali_ratio=.2, test_
         subset='validation')  # set as validation data
 
     test_datagen = ImageDataGenerator(
-        rescale=1. / 255,
+        # rescale=1. / 255,
         validation_split=0.0)  # set validation split
 
     test_generator = test_datagen.flow(
