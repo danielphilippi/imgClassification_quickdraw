@@ -19,16 +19,23 @@ if __name__ == '__main__':
         'vali_ratio': .2,
         'test_ratio': .2,
         'batch_size': 32,
-        'data_augmentation': {
-
-        }
+        'data_augmentation': None,
+        'train_img_randomization': {} # args passed to ImageDataGenerator
     }
     train_generator, validation_generator, test_generator, class_names = build_set_generators(**img_gen_config)
 
+    model_config = {
+        'classifier': 'cnn_test_dp',
+        'compiler': {
+            'loss': 'categorical_crossentropy',
+            'optimizer': 'adam',
+            'metrics': ['categorical_accuracy']
+        }
+    }
+
     cl = Classifier(
         img_gen_config=img_gen_config,
-        classifier=cnn_test_dp,
-        optimizer='adam',
+        model_config=model_config,
         input_shape=train_generator.x.shape[1:]
     )
     cl.class_names = class_names
@@ -47,9 +54,9 @@ if __name__ == '__main__':
     }
 
     # cl.train(train_generator, validation_generator, train_config)
-    cl.train_from_array(train_generator, validation_generator, train_config)
+    cl.train(train_generator, validation_generator, train_config)
 
-    cl
+    cl.save()
 
 """
 what do we need to save?

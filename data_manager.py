@@ -150,7 +150,7 @@ def build_set_generators(classes, max_imgs_per_class=10000, vali_ratio=.2, test_
 
     train_datagen = ImageDataGenerator(
         # rescale=1. / 255,
-        validation_split=vali_ratio)  # set validation split
+        validation_split=vali_ratio, **kwargs['train_img_randomization'])  # set validation split
 
     train_generator = train_datagen.flow(
         x=x_train,

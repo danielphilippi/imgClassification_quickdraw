@@ -11,6 +11,10 @@ from sklearn.metrics import classification_report, confusion_matrix
 from keras.preprocessing.image import ImageDataGenerator
 from keras.callbacks import EarlyStopping
 
+from mods.classifier import cnn_test_dp
+
+import json
+
 
 class ModelClass:
     def __init__(self):
@@ -257,24 +261,21 @@ class ACGAN(ModelClass):
 
 
 class Classifier(ModelClass):
-    def __init__(self, img_gen_config, classifier, optimizer, input_shape=(28, 28, 1)):
+    def __init__(self, img_gen_config, model_config, input_shape=(28, 28, 1)):
         self.img_gen_config = img_gen_config
+        self.model_config = model_config
+        self.train_config = None
+
         self.input_shape = input_shape
         self.num_cat = len(img_gen_config['classes'])
         self.num_img = None
         self.class_names = None
 
-        self.optimizer = optimizer
         self.history = None
-        self.model = classifier(self.input_shape, self.num_cat)
-        self.train_config = None
+        self.model = globals()[model_config['classifier']](self.input_shape, self.num_cat)
 
         # Todo: research on metrics
-        self.model.compile(
-            loss='categorical_crossentropy',
-            optimizer=self.optimizer,
-            metrics=['categorical_accuracy']
-        )
+        self.model.compile(**model_config['compiler'])
         self.mode_summary = self.model.summary()
 
         self.conf_mat = None
@@ -306,7 +307,7 @@ class Classifier(ModelClass):
             callbacks.append(es)
         return callbacks
 
-    def train_from_generator(self, train_generator, validation_generator, train_config):
+    def _train_from_generator(self, train_generator, validation_generator, train_config):
         self.train_config = train_config
 
         batch_size = self.img_gen_config['batch_size']
@@ -320,7 +321,7 @@ class Classifier(ModelClass):
             callbacks=self._generate_callbacks()
         )
 
-    def train_from_array(self, train_generator, validation_generator, train_config):
+    def _train_from_array(self, train_generator, validation_generator, train_config):
         self.train_config = train_config
 
         batch_size = self.img_gen_config['batch_size']
@@ -336,19 +337,27 @@ class Classifier(ModelClass):
             callbacks=self._generate_callbacks()
         )
 
+    def train(self, train_generator, validation_generator, train_config):
+        rand_config = self.img_gen_config['train_img_randomization']
+        if len(rand_config) == 0:
+            _train = self._train_from_array
+        else:
+            _train = self._train_from_generator
+
+        _train(train_generator, validation_generator, train_config)
+
     # TODO(DP) use binary instead of json?!
-    def save_model(self):
+    def save(self):
 
-        def save(model, model_name):
-            model_path = "saved_model/%s.json" % model_name
-            weights_path = "saved_model/%s_weights.hdf5" % model_name
-            options = {"file_arch": model_path,
-                       "file_weight": weights_path}
-            json_string = model.to_json()
-            open(options['file_arch'], 'w').write(json_string)
-            model.save_weights(options['file_weight'])
+        # save config
+        config = {
+            'img_gen_config': self.img_gen_config,
+            'model_config': self.model_config,
+            'train_config': self.train_config
+        }
+        with open('config.json', 'w') as fp:
+            json.dump(config, fp, indent=4)
 
-        save(self.model, "classifier")
 
     # Todo: move to helper fcts module
     def plot_model(self, epochs):
