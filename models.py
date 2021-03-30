@@ -14,6 +14,12 @@ from keras.callbacks import EarlyStopping
 from mods.classifier import cnn_test_dp
 
 import json
+from time import time
+from definitions import *
+import pandas as pd
+import getpass
+from datetime import datetime
+import pickle
 
 
 class ModelClass:
@@ -280,6 +286,7 @@ class Classifier(ModelClass):
 
         self.conf_mat = None
         self.report = None
+        self.train_duration = None
 
     # Todo move definition to mods.classifier and pass to the class
     def build_classifier(self, classifier):
@@ -344,19 +351,57 @@ class Classifier(ModelClass):
         else:
             _train = self._train_from_generator
 
+        start = time()
         _train(train_generator, validation_generator, train_config)
+        end = time()
+        self.train_duration = np.round(end - start, 2)
 
     # TODO(DP) use binary instead of json?!
     def save(self):
 
+        overview = pd.read_csv(MODEL_OVERVIEW_FILE_ABS)
+
+        if len(overview.run_id) == 0:
+            run_id = 1
+        else:
+            run_id = overview.run_id.max() + 1
+
+        model_path_rel = f'run_{str(run_id).zfill(3)}/'
+        model_path_abs = os.path.join(MODELS_PATH, model_path_rel)
+        if not os.path.exists(model_path_abs):
+            os.mkdir(model_path_abs)
+        else:
+            raise Exception('path to save model already exists!')
+
+        overview_new = pd.DataFrame({
+            'run_id': [run_id],
+            'path_rel': [model_path_rel],
+            'accuracy': [None],
+            'duration': [self.train_duration],
+            'date': [datetime.now().strftime("%Y-%m-%d")],
+            'time': [datetime.now().strftime("%H:%M:%S")],
+            'user': [getpass.getuser()]
+        })
+
+        pd.concat([overview, overview_new]).to_csv(MODEL_OVERVIEW_FILE_ABS, index=False)
+
         # save config
         config = {
+            'version': 0.1,
             'img_gen_config': self.img_gen_config,
             'model_config': self.model_config,
             'train_config': self.train_config
         }
-        with open('config.json', 'w') as fp:
+        with open(os.path.join(MODELS_PATH, model_path_rel, CONFIG_FILE_REL), 'w') as fp:
             json.dump(config, fp, indent=4)
+
+        # save model
+        self.model.save(os.path.join(model_path_abs, MODEL_FILE_REL))
+
+        # save history
+        with open(os.path.join(model_path_abs, HISTORY_FILE_REL), 'wb') as f:
+            pickle.dump(self.history.history, f)
+
 
 
     # Todo: move to helper fcts module
