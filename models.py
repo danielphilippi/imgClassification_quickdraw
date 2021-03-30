@@ -12,15 +12,12 @@ from keras.preprocessing.image import ImageDataGenerator
 from keras.callbacks import EarlyStopping
 
 
-
 class ModelClass:
     def __init__(self):
         self.history = None
         self.report = None
         self.confusion_matrix = None
-
-    def train(self):
-        pass
+        self.model = None
 
     # TODO: picklyze this method
     def save_model(self):
@@ -259,7 +256,7 @@ class ACGAN(ModelClass):
         pass
 
 
-class Classifier:
+class Classifier(ModelClass):
     def __init__(self, img_gen_config, classifier, optimizer, input_shape=(28, 28, 1)):
         self.img_gen_config = img_gen_config
         self.input_shape = input_shape
@@ -302,22 +299,41 @@ class Classifier:
 
     # es = EarlyStopping(monitor='val_categorical_accuracy', mode='max', min_delta=1, verbose=1, patience=3)
 
-    def train(self, train_generator, validation_generator, train_config):
-        self.train_config = train_config
+    def _generate_callbacks(self):
         callbacks = []
-        if 'early_stopping' in train_config['callbacks'].keys():
-            es = EarlyStopping(**train_config['callbacks']['early_stopping'])
+        if 'early_stopping' in self.train_config['callbacks'].keys():
+            es = EarlyStopping(**self.train_config['callbacks']['early_stopping'])
             callbacks.append(es)
+        return callbacks
+
+    def train_from_generator(self, train_generator, validation_generator, train_config):
+        self.train_config = train_config
 
         batch_size = self.img_gen_config['batch_size']
 
-        history = self.model.fit(
+        self.history = self.model.fit(
             train_generator,
             steps_per_epoch=train_generator.n // batch_size,
             validation_data=validation_generator,
             validation_steps=validation_generator.n // batch_size,
             epochs=self.train_config['n_epochs'],
-            callbacks=callbacks
+            callbacks=self._generate_callbacks()
+        )
+
+    def train_from_array(self, train_generator, validation_generator, train_config):
+        self.train_config = train_config
+
+        batch_size = self.img_gen_config['batch_size']
+
+        self.history = self.model.fit(
+            x=train_generator.x,
+            y=train_generator.y,
+            batch_size=batch_size,
+            steps_per_epoch=train_generator.n // batch_size,
+            validation_data=(validation_generator.x, validation_generator.y),
+            validation_steps=validation_generator.n // batch_size,
+            epochs=self.train_config['n_epochs'],
+            callbacks=self._generate_callbacks()
         )
 
     # TODO(DP) use binary instead of json?!
