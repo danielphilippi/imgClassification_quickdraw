@@ -356,9 +356,7 @@ class Classifier(ModelClass):
         end = time()
         self.train_duration = np.round(end - start, 2)
 
-    # TODO(DP) use binary instead of json?!
-    def save(self):
-
+    def _manage_model_overview(self):
         overview = pd.read_csv(MODEL_OVERVIEW_FILE_ABS, sep=';')
 
         if len(overview.run_id) == 0:
@@ -380,11 +378,17 @@ class Classifier(ModelClass):
             'duration': [str(self.train_duration).replace('.', ',')],
             'date': [datetime.now().strftime("%Y-%m-%d")],
             'time': [datetime.now().strftime("%H:%M:%S")],
-            'user': [getpass.getuser()],
+                'user': [getpass.getuser()],
             'compare': [None]
         })
 
         pd.concat([overview, overview_new]).to_csv(MODEL_OVERVIEW_FILE_ABS, index=False, sep=';')
+
+        return model_path_abs
+
+    def save(self):
+
+        model_path_abs = self._manage_model_overview()
 
         # save config
         config = {
@@ -393,7 +397,7 @@ class Classifier(ModelClass):
             'model_config': self.model_config,
             'train_config': self.train_config
         }
-        with open(os.path.join(MODELS_PATH, model_path_rel, CONFIG_FILE_REL), 'w') as fp:
+        with open(os.path.join(model_path_abs, CONFIG_FILE_REL), 'w') as fp:
             json.dump(config, fp, indent=4)
 
         # save model
@@ -402,8 +406,6 @@ class Classifier(ModelClass):
         # save history
         with open(os.path.join(model_path_abs, HISTORY_FILE_REL), 'wb') as f:
             pickle.dump(self.history.history, f)
-
-
 
     # Todo: move to helper fcts module
     def plot_model(self, epochs):
