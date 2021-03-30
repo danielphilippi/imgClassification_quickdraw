@@ -57,22 +57,41 @@ class Classifier:
 
     # es = EarlyStopping(monitor='val_categorical_accuracy', mode='max', min_delta=1, verbose=1, patience=3)
 
-    def train(self, train_generator, validation_generator, train_config):
-        self.train_config = train_config
+    def _generate_callbacks(self):
         callbacks = []
-        if 'early_stopping' in train_config['callbacks'].keys():
-            es = EarlyStopping(**train_config['callbacks']['early_stopping'])
+        if 'early_stopping' in self.train_config['callbacks'].keys():
+            es = EarlyStopping(**self.train_config['callbacks']['early_stopping'])
             callbacks.append(es)
+        return callbacks
+
+    def train_from_generator(self, train_generator, validation_generator, train_config):
+        self.train_config = train_config
 
         batch_size = self.img_gen_config['batch_size']
 
-        history = self.model.fit(
+        self.history = self.model.fit(
             train_generator,
             steps_per_epoch=train_generator.n // batch_size,
             validation_data=validation_generator,
             validation_steps=validation_generator.n // batch_size,
             epochs=self.train_config['n_epochs'],
-            callbacks=callbacks
+            callbacks=self._generate_callbacks()
+        )
+
+    def train_from_array(self, x_train, y_train, x_val, y_val, train_config):
+        self.train_config = train_config
+
+        batch_size = self.img_gen_config['batch_size']
+
+        self.history = self.model.fit(
+            x=x_train,
+            y=y_train,
+            batch_size=batch_size,
+            steps_per_epoch=x_train.shape[0] // batch_size,
+            validation_data=(x_val, y_val),
+            validation_steps=x_val.shape[0] // batch_size,
+            epochs=self.train_config['n_epochs'],
+            callbacks=self._generate_callbacks()
         )
 
     def save_model(self):

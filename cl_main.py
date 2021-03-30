@@ -20,7 +20,7 @@ if __name__ == '__main__':
         'test_ratio': .2,
         'batch_size': 32
     }
-    train_generator, validation_generator, test_generator, class_names_ = build_set_generators(**img_gen_config)
+    train_generator, validation_generator, test_generator, class_names = build_set_generators(**img_gen_config)
 
     cl = Classifier(
         img_gen_config=img_gen_config,
@@ -28,6 +28,7 @@ if __name__ == '__main__':
         optimizer='adam',
         input_shape=train_generator.x.shape[1:]
     )
+    cl.class_names = class_names
 
     train_config = {
         'n_epochs': 10,
@@ -42,6 +43,36 @@ if __name__ == '__main__':
         }
     }
 
-    cl.train(train_generator, validation_generator, train_config)
+    cl.train_from_array(x_train=train_generator.x, y_train=train_generator.y,
+                        x_val=validation_generator.x, y_val=validation_generator.y,
+                        train_config=train_config)
 
+    cl
+
+"""
+what do we need to save?
+
+Configs: 
+- train / test data config
+- model layers config --> only save name
+- compiliation config
+- train config 
+- version
+
+Data
+- history on train and vali data
+- train duration 
+- evaluation report on test data
+- model h5 (including architechture and weights)
+
+# experiment overview
+- id 
+- location 
+- metric
+- duration 
+
+cl.model.save('model.h5')
+from keras.models import load_model
+model = load_model('model.h5')
+"""
 
