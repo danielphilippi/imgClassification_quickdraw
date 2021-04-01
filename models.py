@@ -21,6 +21,8 @@ import getpass
 from datetime import datetime
 import pickle
 
+from utils import plots
+
 
 class ModelClass:
     def __init__(self):
@@ -284,9 +286,11 @@ class Classifier(ModelClass):
         self.model.compile(**model_config['compiler'])
         self.mode_summary = self.model.summary()
 
+        self.history_plot = None
         self.conf_mat = None
         self.report = None
         self.train_duration = None
+        self.scores = None
 
     # Todo move definition to mods.classifier and pass to the class
     def build_classifier(self, classifier):
@@ -364,6 +368,7 @@ class Classifier(ModelClass):
         else:
             run_id = overview.run_id.max() + 1
 
+        run_name = f'run_{str(run_id).zfill(3)}'
         model_path_rel = f'run_{str(run_id).zfill(3)}/'
         model_path_abs = os.path.join(MODELS_PATH, model_path_rel)
         if not os.path.exists(model_path_abs):
@@ -384,11 +389,11 @@ class Classifier(ModelClass):
 
         pd.concat([overview, overview_new]).to_csv(MODEL_OVERVIEW_FILE_ABS, index=False, sep=';')
 
-        return model_path_abs
+        return run_name, model_path_abs
 
     def save(self):
 
-        model_path_abs = self._manage_model_overview()
+        run_name, model_path_abs = self._manage_model_overview()
 
         # save config
         config = {
@@ -407,45 +412,54 @@ class Classifier(ModelClass):
         with open(os.path.join(model_path_abs, HISTORY_FILE_REL), 'wb') as f:
             pickle.dump(self.history.history, f)
 
-    # Todo: move to helper fcts module
-    def plot_model(self, epochs):
+        # save report
+        report = self.report
+        report['keras_scores'] = self.scores['test']
 
-        acc = self.history['acc']
-        val_acc = self.history['val_acc']
-        loss = self.history['loss']
-        val_loss = self.history['val_loss']
+        with open(os.path.join(model_path_abs, REPORT_FILE_REL), 'w') as fp:
+            json.dump(report, fp, indent=4)
 
-        epochs = range(1, len(acc) + 1)
+        # save history plot
 
-        # generate instance fig and return fig
-        fig = plt.figure()
-        ax1 = fig.add_subplot(2,1,1)
-        ax2 = fig.add_subplot(2,1,2)
-
-
-        ax1.plot(epochs, acc, 'bo', label='Training acc')
-        ax1.plot(epochs, val_acc, 'b', label='Validation acc')
-        ax1.title('Training and validation accuracy')
-        ax1.legend()
-
-        ax2.plot(epochs, loss, 'bo', label='Training loss')
-        ax2.plot(epochs, val_loss, 'b', label='Validation loss')
-        ax2.title('Training and validation loss')
-        ax2.legend()
-
-        fig.show()
-        return fig
+        # save confusion matrix
+        pd.DataFrame(self.conf_mat).to_csv(os.path.join(model_path_abs, CM_FILE_REL), sep=';')
+        cm_plot = plots.plot_confusion_matrix(
+            cm=self.conf_mat,
+            cmap=plt.cm.Greys,
+            classes=self.class_names.values(),
+            title=f'CM - {run_name}',
+            normalize=False
+        )
+        cm_plot.savefig(os.path.join(model_path_abs, CM_PLOT_FILE_REL))
 
     def evaluate(self, test_set):
-        # if you have the last version of tensorflow, the predict_generator is deprecated.
-        # you should use the predict method.
-        # if you do not have the last version, you must use predict_generator
-        y_pred = self.model.predict(test_set, 63) # ceil(num_of_test_samples / batch_size)
-        y_pred = (y_pred>0.5)
+        # predict
+        y_pred = self.model.predict(test_set) # ceil(num_of_test_samples / batch_size)
+        y_pred_classes = y_pred.argmax(axis=-1)
+        # cm
         print('Confusion Matrix')
-        self.conf_mat = confusion_matrix(test_set.classes, y_pred)
+        y_true = test_set.y.argmax(axis=1)
+        self.conf_mat = confusion_matrix(y_true, y_pred_classes)
         print(self.conf_mat)
+        # report
         print('Classification Report')
-        target_names = test_set.class_names.unique()
-        self.report = classification_report(test_set.classes, y_pred, target_names=target_names)
-        print(self.report)
+        self.report = classification_report(
+            y_true,
+            y_pred_classes,
+            labels=list(self.class_names.keys()),
+            target_names=list(self.class_names.values()),
+            output_dict=True,
+            digits=2
+        )
+
+        # scores
+        scores = {}
+        for set_name in ['test_set']:
+            data_set = test_set
+            set_name = set_name.replace('_set', '')
+            scores[set_name] = dict(zip(
+                [f'{set_name}_loss', f'{set_name}_acc'],
+                np.round(self.model.evaluate(data_set), 2)
+            ))
+        self.scores = scores
+        hist_df = pd.DataFrame(self.history.history)

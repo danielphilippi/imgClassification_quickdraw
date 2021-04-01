@@ -56,6 +56,8 @@ if __name__ == '__main__':
     # cl.train(train_generator, validation_generator, train_config)
     cl.train(train_generator, validation_generator, train_config)
 
+    # cl.plot_history()
+    cl.evaluate(test_generator)
     cl.save()
 
 """

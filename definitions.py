@@ -42,3 +42,8 @@ if not os.path.isfile(MODEL_OVERVIEW_FILE_ABS):
 CONFIG_FILE_REL = 'config.json'
 MODEL_FILE_REL = 'model.h5'
 HISTORY_FILE_REL = 'history.pickle'
+REPORT_FILE_REL = 'report.json'
+CM_FILE_REL = 'cm.csv'
+CM_PLOT_FILE_REL = 'cm.pdf'
+
+
