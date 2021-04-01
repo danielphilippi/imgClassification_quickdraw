@@ -31,7 +31,9 @@ if not os.path.isfile(MODEL_OVERVIEW_FILE_ABS):
     pd.DataFrame({
         'run_id': [],
         'path_rel': [],
-        'accuracy': [],
+        'train_acc': [],
+        'vali_acc': [],
+        'test_acc': [],
         'duration': [],
         'date': [],
         'time': [],
@@ -45,5 +47,6 @@ HISTORY_FILE_REL = 'history.pickle'
 REPORT_FILE_REL = 'report.json'
 CM_FILE_REL = 'cm.csv'
 CM_PLOT_FILE_REL = 'cm.pdf'
+HIST_PLOT_FILE_REL = 'history.pdf'
 
 

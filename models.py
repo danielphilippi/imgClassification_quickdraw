@@ -22,6 +22,7 @@ from datetime import datetime
 import pickle
 
 from utils import plots
+from utils.helper import pformat
 
 
 class ModelClass:
@@ -292,6 +293,10 @@ class Classifier(ModelClass):
         self.train_duration = None
         self.scores = None
 
+        self.train_acc = None
+        self.test_acc = None
+        self.vali_acc = None
+
     # Todo move definition to mods.classifier and pass to the class
     def build_classifier(self, classifier):
         cnn_model = classifier()
@@ -379,7 +384,9 @@ class Classifier(ModelClass):
         overview_new = pd.DataFrame({
             'run_id': [run_id],
             'path_rel': [model_path_rel],
-            'accuracy': [None],
+            'train_acc': self.train_acc,
+            'vali_acc': self.vali_acc,
+            'test_acc': self.test_acc,
             'duration': [str(self.train_duration).replace('.', ',')],
             'date': [datetime.now().strftime("%Y-%m-%d")],
             'time': [datetime.now().strftime("%H:%M:%S")],
@@ -400,7 +407,8 @@ class Classifier(ModelClass):
             'version': 0.1,
             'img_gen_config': self.img_gen_config,
             'model_config': self.model_config,
-            'train_config': self.train_config
+            'train_config': self.train_config,
+            'class_names': self.class_names
         }
         with open(os.path.join(model_path_abs, CONFIG_FILE_REL), 'w') as fp:
             json.dump(config, fp, indent=4)
@@ -414,15 +422,18 @@ class Classifier(ModelClass):
 
         # save report
         report = self.report
-        report['keras_scores'] = self.scores['test']
+        report['keras_scores'] = self.scores
 
         with open(os.path.join(model_path_abs, REPORT_FILE_REL), 'w') as fp:
             json.dump(report, fp, indent=4)
 
         # save history plot
+        hist_plot = plots.plot_history(self.history.history, self.model_config, title=f'History - {run_name}')
+        hist_plot.savefig(os.path.join(model_path_abs, HIST_PLOT_FILE_REL))
 
         # save confusion matrix
         pd.DataFrame(self.conf_mat).to_csv(os.path.join(model_path_abs, CM_FILE_REL), sep=';')
+
         cm_plot = plots.plot_confusion_matrix(
             cm=self.conf_mat,
             cmap=plt.cm.Greys,
@@ -436,21 +447,28 @@ class Classifier(ModelClass):
         # predict
         y_pred = self.model.predict(test_set) # ceil(num_of_test_samples / batch_size)
         y_pred_classes = y_pred.argmax(axis=-1)
+
         # cm
         print('Confusion Matrix')
         y_true = test_set.y.argmax(axis=1)
         self.conf_mat = confusion_matrix(y_true, y_pred_classes)
-        print(self.conf_mat)
+
         # report
         print('Classification Report')
-        self.report = classification_report(
-            y_true,
-            y_pred_classes,
-            labels=list(self.class_names.keys()),
-            target_names=list(self.class_names.values()),
-            output_dict=True,
-            digits=2
-        )
+
+        for output_dict in [False, True]:
+            report = classification_report(
+                y_true,
+                y_pred_classes,
+                labels=list(self.class_names.keys()),
+                target_names=list(self.class_names.values()),
+                output_dict=output_dict,
+                digits=2)
+
+            if output_dict:
+                self.report = report
+            else:
+                print(report)
 
         # scores
         scores = {}
@@ -461,5 +479,33 @@ class Classifier(ModelClass):
                 [f'{set_name}_loss', f'{set_name}_acc'],
                 np.round(self.model.evaluate(data_set), 2)
             ))
-        self.scores = scores
+        metric = self.model_config['compiler']['metrics'][0]
+
+        scores['train'] = {
+            'train_loss_best': (
+                np.array(self.history.history['loss']).max(),
+                np.array(self.history.history['loss']).argmax()),
+            'train_loss_last': self.history.history['loss'][-1],
+            'train_acc_best': (
+                np.array(self.history.history[metric]).max(),
+                np.array(self.history.history[metric]).argmax()),
+            'train_acc_last': self.history.history[metric][-1]
+        }
+        scores['vali'] = {
+            'vali_loss_best': (
+                np.array(self.history.history['val_loss']).max(),
+                np.array(self.history.history['val_loss']).argmax()),
+            'vali_loss_last': self.history.history['val_loss'][-1],
+            'vali_acc_best': (
+                np.array(self.history.history[f'val_{metric}']).max(),
+                np.array(self.history.history[f'val_{metric}']).argmax()),
+            'vali_acc_last': self.history.history[f'val_{metric}'][-1]
+        }
+
+        self.scores = pformat(scores)
+        self.train_acc = scores['train']['train_acc_last']
+        self.vali_acc = scores['vali']['vali_acc_last']
+        self.test_acc = scores['test']['test_acc']
         hist_df = pd.DataFrame(self.history.history)
+
+

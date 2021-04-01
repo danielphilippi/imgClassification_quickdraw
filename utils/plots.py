@@ -3,31 +3,32 @@ import numpy as np
 
 
 # Todo: move to helper fcts module
-def plot_history(history, model_config):
+def plot_history(history, model_config, title):
     metric = model_config['compiler']['metrics'][0]
-    acc = history.history[f'{metric}']
-    val_acc = history.history[f'val_{metric}']
-    loss = history.history['loss']
-    val_loss = history.history['val_loss']
+    acc = history[f'{metric}']
+    val_acc = history[f'val_{metric}']
+    loss = history['loss']
+    val_loss = history['val_loss']
 
     epochs = [i for i in range(len(acc))]
 
     # generate instance fig and return fig
-    fig = plt.figure()
-    ax1 = fig.add_subplot(2, 1, 1)
-    ax2 = fig.add_subplot(2, 1, 2)
+    fig, (ax1, ax2) = plt.subplots(nrows=2, sharex=True)
+    fig.suptitle(title)
 
-    ax1.plot(epochs, acc, 'bo', label='Training acc')
-    ax1.plot(epochs, val_acc, 'b', label='Validation acc')
-    ax1.title('Training and validation accuracy')
+    ax1.plot(epochs, acc, c='dimgrey', marker='o', label='Training acc')
+    ax1.plot(epochs, val_acc, c='grey', marker='x', label='Validation acc')
+    ax1.set_title('Training and validation accuracy')
+    ax1.set_ylim(0., 1.)
     ax1.legend()
 
-    ax2.plot(epochs, loss, 'bo', label='Training loss')
-    ax2.plot(epochs, val_loss, 'b', label='Validation loss')
-    ax2.title('Training and validation loss')
+    ax2.plot(epochs, loss, c='dimgrey', marker='o', label='Training loss')
+    ax2.plot(epochs, val_loss, c='grey', marker='x', label='Validation loss')
+    ax2.set_title('Training and validation loss')
     ax2.legend()
 
-    # fig.show()
+    plt.xlabel('epoch')
+    fig.show()
     return fig
 
 
@@ -82,5 +83,3 @@ def plot_confusion_matrix(cm, classes,
     # fig.show()
 
     return fig
-
-
