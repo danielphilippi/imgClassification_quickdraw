@@ -31,6 +31,19 @@ def cnn_1(input_shape, num_cat):
 
 
 def cnn_test_dp(input_shape, n_classes):
+    """
+    https://stackoverflow.com/questions/46714075/keras-conv1d-printing-plotting-information-of-kernel-size-on-summary-or-us
+    You should decide the kernel size based on the size of the patterns.
+    A kernel size of 1 is nothing more than joining channels together,
+    but without looking for lengthy patterns.
+    It's almost the same as using a dense layer in 3D data. Often the best size is 3,
+    and you stack a series of convolutions and maxpoolings to detect larger patterns.
+    In convolutoinal layers, the "filters" are compared to neurons
+
+    :param input_shape:
+    :param n_classes:
+    :return:
+    """
     # Define model
     model = Sequential()
     model.add(Conv2D(16, (3, 3),

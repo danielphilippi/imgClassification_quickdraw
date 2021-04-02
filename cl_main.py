@@ -1,4 +1,3 @@
-
 from data_manager import build_set_generators
 from models import Classifier
 from mods.classifier import cnn_test_dp
@@ -10,7 +9,7 @@ import warnings
 if __name__ == '__main__':
     # define classes if imgs to load
 
-    config_manual = False
+    config_manual = True
     config_path_rel = 'data/models/run_010/config.json'
     config_path = os.path.join(BASE_PATH, config_path_rel)
 
@@ -19,7 +18,7 @@ if __name__ == '__main__':
             "camel", "cow", "elephant", "giraffe", "horse",
             "kangaroo", "lion", "panda", "rhinoceros", "tiger", "zebra"
         ]
-        n_classes = None
+        n_classes = 3
         class_list = big_mamals[0:n_classes]
 
         img_gen_config = {
@@ -69,6 +68,7 @@ if __name__ == '__main__':
     # build img data generators
     train_generator, validation_generator, test_generator, class_names = build_set_generators(**img_gen_config)
 
+    # define model
     cl = Classifier(
         img_gen_config=img_gen_config,
         model_config=model_config,
@@ -80,33 +80,10 @@ if __name__ == '__main__':
     # cl.train(train_generator, validation_generator, train_config)
     cl.train(train_generator, validation_generator, train_config)
 
+    # eval
     cl.evaluate(test_generator)
+
+    # save
     cl.save()
 
-"""
-what do we need to save?
-
-Configs: 
-- train / test data config
-- model layers config --> only save name
-- compiliation config
-- train config 
-- version
-
-Data
-- history on train and vali data
-- train duration 
-- evaluation report on test data
-- model h5 (including architechture and weights)
-
-# experiment overview
-- id 
-- location 
-- metric
-- duration 
-
-cl.model.save('model.h5')
-from keras.models import load_model
-model = load_model('model.h5')
-"""
 
