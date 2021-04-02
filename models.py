@@ -12,7 +12,7 @@ from sklearn.metrics import classification_report, confusion_matrix
 from keras.preprocessing.image import ImageDataGenerator
 from keras.callbacks import EarlyStopping
 
-from mods.classifier import cnn_test_dp
+from mods.classifier import *
 
 import json
 from time import time
