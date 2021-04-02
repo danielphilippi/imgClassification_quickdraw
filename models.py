@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 
 from keras.models import Sequential, Model
 from keras.optimizers import Adam
+from keras.utils import plot_model
 from keras.layers.convolutional import UpSampling2D, Conv2D
 from keras.layers import Input, Dense, Reshape, Flatten, Embedding, multiply, Dropout, Activation, BatchNormalization, \
     ZeroPadding2D, MaxPooling2D
@@ -20,6 +21,7 @@ import pandas as pd
 import getpass
 from datetime import datetime
 import pickle
+from contextlib import redirect_stdout
 
 from utils import plots
 from utils.helper import pformat
@@ -404,6 +406,7 @@ class Classifier(ModelClass):
 
         # save config
         config = {
+            'run': run_name.replace('run_', ''),
             'version': 0.1,
             'img_gen_config': self.img_gen_config,
             'model_config': self.model_config,
@@ -416,13 +419,36 @@ class Classifier(ModelClass):
         # save model
         self.model.save(os.path.join(model_path_abs, MODEL_FILE_REL))
 
+        # plot model
+        # plot model as graph
+        """
+        plot_model(
+            self.model,
+            to_file=os.path.join(model_path_abs, f'architecture_{run_name}.png'),
+            show_shapes=True,
+            show_dtype=False,
+            show_layer_names=True,
+            rankdir="TB",
+            expand_nested=False,
+            dpi=300
+        )
+        """
+        # plot model as summary
+        with open(os.path.join(model_path_abs, SUMM_TEXT_FILE_REL), 'w') as f:
+            with redirect_stdout(f):
+                print(f'Summary {run_name}')
+                self.model.summary()
+
         # save history
         with open(os.path.join(model_path_abs, HISTORY_FILE_REL), 'wb') as f:
             pickle.dump(self.history.history, f)
 
         # save report
-        report = self.report
-        report['keras_scores'] = self.scores
+        report = {
+            'run': run_name.replace('run_', ''),
+            'keras_scores': self.scores,
+            'test_metrics': self.report
+        }
 
         with open(os.path.join(model_path_abs, REPORT_FILE_REL), 'w') as fp:
             json.dump(report, fp, indent=4)
@@ -483,8 +509,8 @@ class Classifier(ModelClass):
 
         scores['train'] = {
             'train_loss_best': (
-                np.array(self.history.history['loss']).max(),
-                np.array(self.history.history['loss']).argmax()),
+                np.array(self.history.history['loss']).min(),
+                np.array(self.history.history['loss']).argmin()),
             'train_loss_last': self.history.history['loss'][-1],
             'train_acc_best': (
                 np.array(self.history.history[metric]).max(),
@@ -493,8 +519,8 @@ class Classifier(ModelClass):
         }
         scores['vali'] = {
             'vali_loss_best': (
-                np.array(self.history.history['val_loss']).max(),
-                np.array(self.history.history['val_loss']).argmax()),
+                np.array(self.history.history['val_loss']).min(),
+                np.array(self.history.history['val_loss']).argmin()),
             'vali_loss_last': self.history.history['val_loss'][-1],
             'vali_acc_best': (
                 np.array(self.history.history[f'val_{metric}']).max(),
