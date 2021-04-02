@@ -41,12 +41,13 @@ if not os.path.isfile(MODEL_OVERVIEW_FILE_ABS):
         'compare': []
     }).to_csv(MODEL_OVERVIEW_FILE_ABS, index=False, sep=';')
 
-CONFIG_FILE_REL = 'config.json'
-MODEL_FILE_REL = 'model.h5'
-HISTORY_FILE_REL = 'history.pickle'
-REPORT_FILE_REL = 'report.json'
-CM_FILE_REL = 'cm.csv'
-CM_PLOT_FILE_REL = 'cm.pdf'
-HIST_PLOT_FILE_REL = 'history.pdf'
+CONFIG_FILE_REL = '01_config.json'
+MODEL_FILE_REL = '90_model.h5'
+HISTORY_FILE_REL = '91_history.pickle'
+REPORT_FILE_REL = '04_report.json'
+CM_FILE_REL = '92_cm.csv'
+CM_PLOT_FILE_REL = '05_cm.pdf'
+HIST_PLOT_FILE_REL = '03_history.pdf'
+SUMM_TEXT_FILE_REL = '02_modelsummary.txt'
 
 
