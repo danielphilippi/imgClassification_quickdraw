@@ -375,8 +375,8 @@ class Classifier(ModelClass):
         else:
             run_id = overview.run_id.max() + 1
 
-        run_name = f'run_{str(run_id).zfill(3)}'
-        model_path_rel = f'run_{str(run_id).zfill(3)}/'
+        run_name = f'run_{str(run_id).zfill(4)}'
+        model_path_rel = f'run_{str(run_id).zfill(4)}/'
         model_path_abs = os.path.join(MODELS_PATH, model_path_rel)
         if not os.path.exists(model_path_abs):
             os.mkdir(model_path_abs)
@@ -386,9 +386,9 @@ class Classifier(ModelClass):
         overview_new = pd.DataFrame({
             'run_id': [run_id],
             'path_rel': [model_path_rel],
-            'train_acc': self.train_acc,
-            'vali_acc': self.vali_acc,
-            'test_acc': self.test_acc,
+            'train_acc': round(self.train_acc, 4),
+            'vali_acc': round(self.vali_acc, 4),
+            'test_acc': round(self.test_acc, 4),
             'duration': [str(self.train_duration).replace('.', ',')],
             'date': [datetime.now().strftime("%Y-%m-%d")],
             'time': [datetime.now().strftime("%H:%M:%S")],
