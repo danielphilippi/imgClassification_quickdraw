@@ -26,7 +26,7 @@ class printlearningrate(tf.keras.callbacks.Callback):
         optimizer = self.model.optimizer
         lr = k.eval(optimizer.lr)
         Epoch_count = epoch + 1
-        print('\n', "Epoch:", Epoch_count, ', LR: {:.4f}'.format(lr))
+        print('\n', "Epoch:", Epoch_count, ', LR: {:.10f}'.format(lr))
 
 
 printlr = printlearningrate()
