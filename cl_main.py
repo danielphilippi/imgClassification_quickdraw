@@ -25,7 +25,7 @@ if __name__ == '__main__':
             "camel", "cow", "elephant", "giraffe", "horse",
             "kangaroo", "lion", "panda", "rhinoceros", "tiger", "zebra"
         ]
-        n_classes = 3
+        n_classes = None
         class_list = big_mamals[0:n_classes]
 
         img_gen_config = {
@@ -58,13 +58,15 @@ if __name__ == '__main__':
                     'monitor': 'val_loss',
                     'mode': 'min',
                     'verbose': 1,
-                    'patience': 10
+                    'patience': 10,
+                    'min_delta': .001
                 },
                 'reduce_lr_plateau': {
                     'monitor': 'val_loss',
                     'mode': 'min',
                     'verbose': 1,
-                    'patience': 5
+                    'patience': 5,
+                    'min_delta': .001
                 }
             }
         }
