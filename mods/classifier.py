@@ -1,4 +1,6 @@
 from keras.models import Sequential
+import tensorflow as tf
+from keras import layers
 
 from keras.layers.convolutional import UpSampling2D, Conv2D
 from keras.layers import Dense, Reshape, Embedding, Dropout, Activation, BatchNormalization, ZeroPadding2D, \
@@ -15,8 +17,7 @@ from keras.models import Model
 from keras.layers import Flatten, Dense, Dropout, Activation, \
     Input, merge
 from keras.layers.convolutional import Convolution2D, MaxPooling2D, ZeroPadding2D
-from convnetskeras.customlayers import convolution2Dgroup, crosschannelnormalization, \
-    splittensor, Softmax4D
+
 
 
 def cnn_1(input_shape, num_cat):
@@ -73,56 +74,50 @@ def cnn_test_dp(input_shape, n_classes):
 
     return model
 
+#https://medium.com/swlh/alexnet-with-tensorflow-46f366559ce8
+def AlexNet(input_shape, nb_classes):
+    model = Sequential()
+    model.add(
+        layers.experimental.preprocessing.Resizing(224, 224, interpolation="bilinear", input_shape=input_shape))
+    model.add(layers.Conv2D(96, 11, strides=4, padding='same'))
+    model.add(layers.Lambda(tf.nn.local_response_normalization))
+    model.add(layers.Activation('relu'))
+    model.add(layers.MaxPooling2D(3, strides=2))
+    model.add(layers.Conv2D(256, 5, strides=4, padding='same'))
+    model.add(layers.Lambda(tf.nn.local_response_normalization))
+    model.add(layers.Activation('relu'))
+    model.add(layers.MaxPooling2D(3, strides=2))
+    model.add(layers.Conv2D(384, 3, strides=4, padding='same'))
+    model.add(layers.Activation('relu'))
+    model.add(layers.Conv2D(384, 3, strides=4, padding='same'))
+    model.add(layers.Activation('relu'))
+    model.add(layers.Conv2D(256, 3, strides=4, padding='same'))
+    model.add(layers.Activation('relu'))
+    model.add(layers.Flatten())
+    model.add(layers.Dense(4096, activation='relu'))
+    model.add(layers.Dropout(0.5))
+    model.add(layers.Dense(4096, activation='relu'))
+    model.add(layers.Dropout(0.5))
+    model.add(layers.Dense(nb_classes, activation='softmax'))
 
-def alexnet(input_shape, nb_classes):
-    # https://github.com/duggalrahul/AlexNet-Experiments-Keras/blob/master/Code/alexnet_base.py
-    # code adapted from https://github.com/heuritech/convnets-keras
+    return model
 
-    inputs = Input(shape=input_shape)
-
-
-    conv_1 = Convolution2D(96, 11, 11, subsample=(4, 4), activation='relu',
-                           name='conv_1', init='he_normal')(inputs)
-
-    conv_2 = MaxPooling2D((3, 3), strides=(2, 2))(conv_1)
-    conv_2 = crosschannelnormalization(name="convpool_1")(conv_2)
-    conv_2 = ZeroPadding2D((2, 2))(conv_2)
-    conv_2 = merge([
-        Convolution2D(128, 5, 5, activation="relu", init='he_normal', name='conv_2_' + str(i + 1))(
-            splittensor(ratio_split=2, id_split=i)(conv_2)
-        ) for i in range(2)], mode='concat', concat_axis=1, name="conv_2")
-
-    conv_3 = MaxPooling2D((3, 3), strides=(2, 2))(conv_2)
-    conv_3 = crosschannelnormalization()(conv_3)
-    conv_3 = ZeroPadding2D((1, 1))(conv_3)
-    conv_3 = Convolution2D(384, 3, 3, activation='relu', name='conv_3', init='he_normal')(conv_3)
-
-    conv_4 = ZeroPadding2D((1, 1))(conv_3)
-    conv_4 = merge([
-        Convolution2D(192, 3, 3, activation="relu", init='he_normal', name='conv_4_' + str(i + 1))(
-            splittensor(ratio_split=2, id_split=i)(conv_4)
-        ) for i in range(2)], mode='concat', concat_axis=1, name="conv_4")
-
-    conv_5 = ZeroPadding2D((1, 1))(conv_4)
-    conv_5 = merge([
-        Convolution2D(128, 3, 3, activation="relu", init='he_normal', name='conv_5_' + str(i + 1))(
-            splittensor(ratio_split=2, id_split=i)(conv_5)
-        ) for i in range(2)], mode='concat', concat_axis=1, name="conv_5")
-
-    dense_1 = MaxPooling2D((3, 3), strides=(2, 2), name="convpool_5")(conv_5)
-
-    dense_1 = Flatten(name="flatten")(dense_1)
-    dense_1 = Dense(4096, activation='relu', name='dense_1', init='he_normal')(dense_1)
-    dense_2 = Dropout(0.5)(dense_1)
-    dense_2 = Dense(4096, activation='relu', name='dense_2', init='he_normal')(dense_2)
-    dense_3 = Dropout(0.5)(dense_2)
-    dense_3 = Dense(nb_classes, name='dense_3_new', init='he_normal')(dense_3)
-
-    prediction = Activation("softmax", name="softmax")(dense_3)
-
-    alexnet = Model(input=inputs, output=prediction)
-
-    return alexnet
+# https://www.kaggle.com/kmader/quickdraw-simple-models
+def AlexNetAdopted(input_shape, nb_classes):
+    thumb_class_model = Sequential()
+    thumb_class_model.add(BatchNormalization(input_shape=input_shape))
+    thumb_class_model.add(Conv2D(16, (3, 3), padding='same'))
+    thumb_class_model.add(Conv2D(16, (3, 3)))
+    thumb_class_model.add(MaxPooling2D(2, 2))
+    thumb_class_model.add(Conv2D(32, (3, 3), padding='same'))
+    thumb_class_model.add(Conv2D(32, (3, 3)))
+    thumb_class_model.add(MaxPooling2D(2, 2))
+    thumb_class_model.add(Conv2D(64, (3, 3), padding='same'))
+    thumb_class_model.add(Flatten())
+    thumb_class_model.add(Dropout(0.5))
+    thumb_class_model.add(Dense(256))
+    thumb_class_model.add(Dense(nb_classes, activation='softmax'))
+    return thumb_class_model
 
 
 def cnn_test_dm(input_shape, n_classes):
