@@ -31,6 +31,8 @@ if not os.path.isfile(MODEL_OVERVIEW_FILE_ABS):
     pd.DataFrame({
         'run_id': [],
         'path_rel': [],
+        'n_classes': [],
+        'n_images_per_class': [],
         'train_acc': [],
         'vali_acc': [],
         'test_acc': [],
