@@ -25,12 +25,12 @@ if __name__ == '__main__':
             "camel", "cow", "elephant", "giraffe", "horse",
             "kangaroo", "lion", "panda", "rhinoceros", "tiger", "zebra"
         ]
-        n_classes = 11
+        n_classes = 3
         class_list = big_mamals[0:n_classes]
 
         img_gen_config = {
             'classes': class_list,
-            'max_imgs_per_class': 1000,
+            'max_imgs_per_class': 100,
             'vali_ratio': .2,
             'test_ratio': .2,
             'batch_size': 32,
@@ -38,21 +38,15 @@ if __name__ == '__main__':
             'train_img_randomization': {} # args passed to ImageDataGenerator
         }
 
-        # define the optimizer function
-        learning_rate= 0.1 # initial learning rate
-        decay_rate = 0.1
-        momentum = 0.8
-        sgd = SGD(lr=learning_rate, momentum=momentum, decay=decay_rate, nesterov=False)
-
-        def exp_decay(epoch):
-            lrate = learning_rate * np.exp(-decay_rate*epoch)
-            return lrate
-
         model_config = {
-            'classifier': 'cnn_test_dm_do3',
+            'classifier': 'cnn_test_dp',
+            'optimizer': {
+                # pass keyword dicts to optimizer
+                'adam': {
+                }
+            },
             'compiler': {
                 'loss': 'categorical_crossentropy',
-                'optimizer': 'adam',
                 'metrics': ['categorical_accuracy']
             }
         }
@@ -64,21 +58,16 @@ if __name__ == '__main__':
                     'monitor': 'val_loss',
                     'mode': 'min',
                     'verbose': 1,
-                    'patience': 5
+                    'patience': 10
                 },
-                #'tensor_board': {
-                #    'log_dir': './logs'
-                #},   
-                #'learning_rate_scheduler': {
-                #    'schedule': 'exp_decay'
-                #},
-                #'reduce_lr_plateau':{
-                #    'monitor': 'val_loss',
-                #    'mode': 'min',
-                #    'verbose': 1,
-                #    'patience': 5
+                'reduce_lr_plateau': {
+                    'monitor': 'val_loss',
+                    'mode': 'min',
+                    'verbose': 1,
+                    'patience': 5
                 }
             }
+        }
     else:
         # load
         with open(config_path, 'r') as f:

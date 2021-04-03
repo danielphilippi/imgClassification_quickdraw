@@ -24,7 +24,7 @@ import pickle
 from contextlib import redirect_stdout
 
 from utils import plots
-from utils.helper import pformat
+from utils.helper import pformat, printlr
 
 
 class ModelClass:
@@ -270,6 +270,7 @@ class ACGAN(ModelClass):
     def evaluate(self):
         pass
 
+from keras.optimizers import Adam, SGD, RMSprop
 
 class Classifier(ModelClass):
     def __init__(self, img_gen_config, model_config, input_shape=(28, 28, 1)):
@@ -286,7 +287,8 @@ class Classifier(ModelClass):
         self.model = globals()[model_config['classifier']](self.input_shape, self.num_cat)
 
         # Todo: research on metrics
-        self.model.compile(**model_config['compiler'])
+        self.optimizer = self.build_optimizer()
+        self.model.compile(optimizer=self.optimizer, **model_config['compiler'])
         self.mode_summary = self.model.summary()
 
         self.history_plot = None
@@ -304,6 +306,18 @@ class Classifier(ModelClass):
         cnn_model = classifier()
         return cnn_model
 
+    def build_optimizer(self):
+        optimizer_n = list(self.model_config['optimizer'].keys())[0].lower()
+        params = self.model_config['optimizer'][optimizer_n]
+        if optimizer_n == 'adam':
+            return Adam(**params)
+        elif optimizer_n == 'sgd':
+            return SGD(**params)
+        elif optimizer_n == 'rmsprop':
+            return RMSprop(**params)
+        else:
+            raise NotImplementedError('Selected optimizer not available. Please choose from [Adam, SGD, RMSprop]')
+
     # Todo: make args part of self
     def _train(self, train_set, test_set):
         self.num_img = train_set.shape[0]
@@ -319,19 +333,20 @@ class Classifier(ModelClass):
     # es = EarlyStopping(monitor='val_categorical_accuracy', mode='max', min_delta=1, verbose=1, patience=3)
 
     def _generate_callbacks(self):
-        callbacks = []
-        if 'early_stopping' in self.train_config['callbacks'].keys():
-            es = EarlyStopping(**self.train_config['callbacks']['early_stopping'])
-            callbacks.append(es)
-        if 'tensor_board' in self.train_config['callbacks'].keys():
-            tb = TensorBoard(**self.train_config['callbacks']['tensor_board'])
-            callbacks.append(tb)
-        if 'learning_rate_scheduler' in self.train_config['callbacks'].keys():
-            lrs = LearningRateScheduler(**self.train_config['callbacks']['learning_rate_scheduler'])
-            callbacks.append(lrs)
-        if 'reduce_lr_plateau' in self.train_config['callbacks'].keys():
-            rlrp = ReduceLROnPlateau(**self.train_config['callbacks']['learning_rate_scheduler'])
-            callbacks.append(rlrp)
+        callbacks = [printlr]
+        for cb_name, params in self.train_config['callbacks'].items():
+            if cb_name == 'early_stopping':
+                es = EarlyStopping(**params)
+                callbacks.append(es)
+            elif cb_name == 'tensor_board':
+                tb = TensorBoard(**params)
+                callbacks.append(tb)
+            elif cb_name == 'learning_rate_scheduler':
+                lrs = LearningRateScheduler(**params)
+                callbacks.append(lrs)
+            elif cb_name == 'reduce_lr_plateau':
+                rlrp = ReduceLROnPlateau(cooldown=1, **params)
+                callbacks.append(rlrp)
 
         return callbacks
 
@@ -417,7 +432,7 @@ class Classifier(ModelClass):
         # save config
         config = {
             'run': run_name.replace('run_', ''),
-            'version': 0.1,
+            'version': 0.2,
             'img_gen_config': self.img_gen_config,
             'model_config': self.model_config,
             'train_config': self.train_config,
@@ -478,6 +493,12 @@ class Classifier(ModelClass):
             normalize=False
         )
         cm_plot.savefig(os.path.join(model_path_abs, CM_PLOT_FILE_REL))
+
+        # optionally save learning rate
+        # not used; instead add lr to history plot
+        if '_lr' in self.history.history.keys():
+            lr_plot = plots.plot_lr(self.history.history, title=f'Learning rate - {run_name}')
+            lr_plot.savefig(os.path.join(model_path_abs, LR_PLOT_FILE_REL))
 
     def evaluate(self, test_set):
         # predict
