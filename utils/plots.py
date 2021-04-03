@@ -13,7 +13,10 @@ def plot_history(history, model_config, title):
     epochs = [i for i in range(len(acc))]
 
     # generate instance fig and return fig
-    fig, (ax1, ax2) = plt.subplots(nrows=2, sharex=True)
+    if 'lr' in history.keys():
+        fig, (ax1, ax2, ax3) = plt.subplots(nrows=3, sharex=True, figsize=(6.4, 4.8/2*3))
+    else:
+        fig, (ax1, ax2) = plt.subplots(nrows=2, sharex=True)
     fig.suptitle(title)
 
     ax1.plot(epochs, acc, c='dimgrey', marker='o', label='Training acc')
@@ -27,9 +30,30 @@ def plot_history(history, model_config, title):
     ax2.set_title('Training and validation loss')
     ax2.legend()
 
+    if 'lr' in history.keys():
+        lr = history['lr']
+        ax3.plot(epochs, lr, c='grey', marker='o', label='')
+        ax3.set_title('Learning rate')
+
     plt.xlabel('epoch')
     fig.show()
     return fig
+
+
+def plot_lr(history, title):
+    lr = history['lr']
+    epochs = [i for i in range(len(lr))]
+
+    fig, ax1 = plt.subplots(nrows=1)
+    fig.suptitle(title)
+
+    ax1.plot(epochs, lr, c='grey', marker='o', label='')
+    ax1.set_title('')
+    #ax1.set_ylim(0., 1.)
+    #ax1.legend()
+    plt.xlabel('epoch')
+    return fig
+
 
 
 def plot_confusion_matrix(cm, classes,

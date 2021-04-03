@@ -49,5 +49,5 @@ CM_FILE_REL = '92_cm.csv'
 CM_PLOT_FILE_REL = '05_cm.pdf'
 HIST_PLOT_FILE_REL = '03_history.pdf'
 SUMM_TEXT_FILE_REL = '02_modelsummary.txt'
-
+LR_PLOT_FILE_REL = '03_1_learningrate.pdf'
 
