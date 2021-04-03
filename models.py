@@ -2,15 +2,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from keras.models import Sequential, Model
-from keras.optimizers import Adam
+from keras.optimizers import Adam, RMSprop
 from keras.utils import plot_model
 from keras.layers.convolutional import UpSampling2D, Conv2D
 from keras.layers import Input, Dense, Reshape, Flatten, Embedding, multiply, Dropout, Activation, BatchNormalization, \
-    ZeroPadding2D, MaxPooling2D
+    ZeroPadding2D, MaxPooling2D, BatchNormalization
 from keras.layers.advanced_activations import LeakyReLU
 from sklearn.metrics import classification_report, confusion_matrix
 from keras.preprocessing.image import ImageDataGenerator
-from keras.callbacks import EarlyStopping
+from keras.callbacks import EarlyStopping, TensorBoard, LearningRateScheduler, ReduceLROnPlateau
 
 from mods.classifier import *
 
@@ -323,6 +323,16 @@ class Classifier(ModelClass):
         if 'early_stopping' in self.train_config['callbacks'].keys():
             es = EarlyStopping(**self.train_config['callbacks']['early_stopping'])
             callbacks.append(es)
+        if 'tensor_board' in self.train_config['callbacks'].keys():
+            tb = TensorBoard(**self.train_config['callbacks']['tensor_board'])
+            callbacks.append(tb)
+        if 'learning_rate_scheduler' in self.train_config['callbacks'].keys():
+            lrs = LearningRateScheduler(**self.train_config['callbacks']['learning_rate_scheduler'])
+            callbacks.append(lrs)
+        if 'reduce_lr_plateau' in self.train_config['callbacks'].keys():
+            rlrp = ReduceLROnPlateau(**self.train_config['callbacks']['learning_rate_scheduler'])
+            callbacks.append(rlrp)
+
         return callbacks
 
     def _train_from_generator(self, train_generator, validation_generator, train_config):

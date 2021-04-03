@@ -2,8 +2,14 @@ from keras.models import Sequential
 
 from keras.layers.convolutional import UpSampling2D, Conv2D
 from keras.layers import Dense, Reshape, Embedding, Dropout, Activation, BatchNormalization, ZeroPadding2D, \
-    MaxPooling2D, Flatten
+    MaxPooling2D, Flatten, AveragePooling2D, BatchNormalization
 from keras.layers.advanced_activations import LeakyReLU
+from keras.regularizers import l2
+from keras.optimizers import SGD
+from keras.optimizers import RMSprop
+from keras.callbacks import LearningRateScheduler
+from keras.callbacks import History
+from keras import losses
 
 
 def cnn_1(input_shape, num_cat):
@@ -62,6 +68,7 @@ def cnn_test_dp(input_shape, n_classes):
 
 
 def cnn_test_dm(input_shape, n_classes):
+
     cnn_model = Sequential()
 
     cnn_model.add(
@@ -72,15 +79,211 @@ def cnn_test_dm(input_shape, n_classes):
     cnn_model.add(MaxPooling2D((2, 2)))
     cnn_model.add(Conv2D(128, (3, 3), activation='relu'))
     cnn_model.add(MaxPooling2D((2, 2)))
-    cnn_model.add(Conv2D(128, (3, 3), activation='relu'))
-    cnn_model.add(MaxPooling2D((2, 2)))
-
+    
     cnn_model.add(Flatten())
 
-    cnn_model.add(Dropout(0.5))  # add?
+    #cnn_model.add(Dropout(0.5))  # add?
+
+    cnn_model.add(Dense(256, activation='relu'))
+    cnn_model.add(Dense(n_classes, activation='softmax'))
+
+    # model.summary()
+    return cnn_model
+
+def cnn_test_dm_fs(input_shape, n_classes):
+    
+    cnn_model = Sequential()
+
+    cnn_model.add(
+        Conv2D(32, (4,4), padding='same', activation='relu',
+               input_shape=input_shape))
+    cnn_model.add(MaxPooling2D((2, 2)))
+    cnn_model.add(Conv2D(64, (4, 4), padding='same',activation='relu'))
+    cnn_model.add(MaxPooling2D((2, 2)))
+    cnn_model.add(Conv2D(128, (4, 4),padding='same',activation='relu'))
+    cnn_model.add(MaxPooling2D((2, 2)))
+    
+    cnn_model.add(Flatten())
+
+    #cnn_model.add(Dropout(0.5))  # add?
 
     cnn_model.add(Dense(512, activation='relu'))
     cnn_model.add(Dense(n_classes, activation='softmax'))
 
     # model.summary()
     return cnn_model
+
+def cnn_test_dm_avgpool(input_shape, n_classes):
+    
+    cnn_model = Sequential()
+
+    cnn_model.add(
+        Conv2D(32, (4,4), padding='same', activation='relu',
+               input_shape=input_shape))
+    cnn_model.add(AveragePooling2D((2, 2)))
+    cnn_model.add(Conv2D(64, (4, 4), padding='same',activation='relu'))
+    cnn_model.add(AveragePooling2D((2, 2)))
+    cnn_model.add(Conv2D(128, (4, 4),padding='same',activation='relu'))
+    cnn_model.add(AveragePooling2D((2, 2)))
+    
+    cnn_model.add(Flatten())
+
+    #cnn_model.add(Dropout(0.5))  # add?
+
+    cnn_model.add(Dense(512, activation='relu'))
+    cnn_model.add(Dense(n_classes, activation='softmax'))
+
+    # model.summary()
+    return cnn_model
+
+def cnn_test_dm_layers1(input_shape, n_classes):
+    cnn_model = Sequential()
+    cnn_model.add(
+        Conv2D(16, (3,3), padding='same', activation='relu',
+               input_shape=input_shape))
+    cnn_model.add(MaxPooling2D((2, 2)))
+    cnn_model.add(Conv2D(32, (3, 3), padding='same',activation='relu'))
+    cnn_model.add(MaxPooling2D((2, 2)))
+    cnn_model.add(Conv2D(64, (3, 3), padding='same',activation='relu'))
+    cnn_model.add(MaxPooling2D((2, 2)))
+    cnn_model.add(Conv2D(128, (3, 3),padding='same',activation='relu'))
+    cnn_model.add(MaxPooling2D((2, 2)))
+    
+    cnn_model.add(Flatten())
+
+    #cnn_model.add(Dropout(0.5))  # add?
+
+    cnn_model.add(Dense(256, activation='relu'))
+    cnn_model.add(Dense(n_classes, activation='softmax'))
+
+    # model.summary()
+    return cnn_model
+
+def cnn_test_dm_layers2(input_shape, n_classes):
+    cnn_model = Sequential()
+    cnn_model.add(
+        Conv2D(16, (3,3), padding='same', activation='relu',
+               input_shape=input_shape))
+    cnn_model.add(MaxPooling2D((2, 2)))
+    cnn_model.add(Conv2D(32, (3, 3), padding='same',activation='relu'))
+    cnn_model.add(Conv2D(32, (3, 3), padding='same',activation='relu'))
+    cnn_model.add(MaxPooling2D((2, 2)))
+    cnn_model.add(Conv2D(64, (3, 3), padding='same',activation='relu'))
+    cnn_model.add(Conv2D(64, (3, 3), padding='same',activation='relu'))
+    cnn_model.add(MaxPooling2D((2, 2)))
+    cnn_model.add(Conv2D(128, (3, 3),padding='same',activation='relu'))
+    cnn_model.add(Conv2D(128, (3, 3),padding='same',activation='relu'))
+    cnn_model.add(MaxPooling2D((2, 2)))
+    
+    cnn_model.add(Flatten())
+
+    #cnn_model.add(Dropout(0.5))  # add?
+
+    cnn_model.add(Dense(256, activation='relu'))
+    cnn_model.add(Dense(n_classes, activation='softmax'))
+
+    # model.summary()
+    return cnn_model
+
+def cnn_test_dm_bn(input_shape, n_classes):
+
+    cnn_model = Sequential()
+
+    cnn_model.add(
+        Conv2D(32, (3, 3), activation='relu',
+               input_shape=input_shape))
+    
+    cnn_model.add(MaxPooling2D((2, 2)))
+    cnn_model.add(Conv2D(64, (3, 3), activation='relu'))
+    cnn_model.add(BatchNormalization())
+    cnn_model.add(MaxPooling2D((2, 2)))
+    cnn_model.add(Conv2D(128, (3, 3), activation='relu'))
+    cnn_model.add(BatchNormalization())
+    cnn_model.add(MaxPooling2D((2, 2)))
+    
+    cnn_model.add(Flatten())
+
+    #cnn_model.add(Dropout(0.5))  # add?
+
+    cnn_model.add(Dense(256, activation='relu'))
+    cnn_model.add(Dense(n_classes, activation='softmax'))
+
+    # model.summary()
+    return cnn_model
+
+def cnn_test_dm_do(input_shape, n_classes):
+    
+    cnn_model = Sequential()
+
+    cnn_model.add(
+        Conv2D(32, (3,3), padding='same', activation='relu',
+               input_shape=input_shape))
+    cnn_model.add(MaxPooling2D((2, 2)))
+    cnn_model.add(Dropout(0.2))
+    cnn_model.add(Conv2D(64, (3, 3), padding='same',activation='relu'))
+    cnn_model.add(MaxPooling2D((2, 2)))
+    cnn_model.add(Dropout(0.2))
+    cnn_model.add(Conv2D(128, (3, 3),padding='same',activation='relu'))
+    cnn_model.add(MaxPooling2D((2, 2)))
+    cnn_model.add(Dropout(0.2))
+    cnn_model.add(Flatten())
+
+    cnn_model.add(Dropout(0.2))  # add?
+
+    cnn_model.add(Dense(512, activation='relu'))
+    cnn_model.add(Dense(n_classes, activation='softmax'))
+
+    # model.summary()
+    return cnn_model
+
+def cnn_test_dm_do2(input_shape, n_classes):
+    
+    cnn_model = Sequential()
+
+    cnn_model.add(
+        Conv2D(32, (3,3), padding='same', activation='relu',
+               input_shape=input_shape))
+    cnn_model.add(MaxPooling2D((2, 2),strides=2))
+    cnn_model.add(Dropout(0.2))
+    cnn_model.add(Conv2D(64, (3, 3), padding='same',activation='relu'))
+    cnn_model.add(MaxPooling2D((2, 2),strides=2))
+    cnn_model.add(Dropout(0.2))
+    cnn_model.add(Conv2D(128, (3, 3),padding='same',activation='relu'))
+    cnn_model.add(MaxPooling2D((2, 2),strides=2))
+    cnn_model.add(Dropout(0.2))
+    cnn_model.add(Flatten())
+
+    cnn_model.add(Dropout(0.2))  # add?
+
+    cnn_model.add(Dense(512, activation='relu'))
+    cnn_model.add(Dense(n_classes, activation='softmax'))
+
+    # model.summary()
+    return cnn_model
+
+def cnn_test_dm_do3(input_shape, n_classes):
+    
+    cnn_model = Sequential()
+
+    cnn_model.add(
+        Conv2D(32, (3,3), padding='same', activation='relu',
+               input_shape=input_shape))
+    cnn_model.add(MaxPooling2D((3, 3)))
+    cnn_model.add(Dropout(0.2))
+    cnn_model.add(Conv2D(64, (3, 3), padding='same',activation='relu'))
+    cnn_model.add(MaxPooling2D((3, 3)))
+    cnn_model.add(Dropout(0.2))
+    cnn_model.add(Conv2D(128, (3, 3),padding='same',activation='relu'))
+    cnn_model.add(MaxPooling2D((3, 3)))
+    cnn_model.add(Dropout(0.2))
+    cnn_model.add(Flatten())
+
+    cnn_model.add(Dropout(0.2))  # add?
+
+    cnn_model.add(Dense(512, activation='relu'))
+    cnn_model.add(Dense(n_classes, activation='softmax'))
+
+    # model.summary()
+    return cnn_model
+
+    

@@ -3,3 +3,4 @@
 data/
 .quickdrawcache
 *.pyc
+logs/
