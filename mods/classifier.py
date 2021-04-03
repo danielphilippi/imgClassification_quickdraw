@@ -5,6 +5,13 @@ from keras.layers import Dense, Reshape, Embedding, Dropout, Activation, BatchNo
     MaxPooling2D, Flatten
 from keras.layers.advanced_activations import LeakyReLU
 
+from keras.models import Model
+from keras.layers import Flatten, Dense, Dropout, Activation, \
+    Input, merge
+from keras.layers.convolutional import Convolution2D, MaxPooling2D, ZeroPadding2D
+from convnetskeras.customlayers import convolution2Dgroup, crosschannelnormalization, \
+    splittensor, Softmax4D
+
 
 def cnn_1(input_shape, num_cat):
     cnn_model = Sequential()
@@ -59,6 +66,57 @@ def cnn_test_dp(input_shape, n_classes):
     model.add(Dense(n_classes, activation='softmax'))
 
     return model
+
+
+def alexnet(input_shape, nb_classes):
+    # https://github.com/duggalrahul/AlexNet-Experiments-Keras/blob/master/Code/alexnet_base.py
+    # code adapted from https://github.com/heuritech/convnets-keras
+
+    inputs = Input(shape=input_shape)
+
+
+    conv_1 = Convolution2D(96, 11, 11, subsample=(4, 4), activation='relu',
+                           name='conv_1', init='he_normal')(inputs)
+
+    conv_2 = MaxPooling2D((3, 3), strides=(2, 2))(conv_1)
+    conv_2 = crosschannelnormalization(name="convpool_1")(conv_2)
+    conv_2 = ZeroPadding2D((2, 2))(conv_2)
+    conv_2 = merge([
+        Convolution2D(128, 5, 5, activation="relu", init='he_normal', name='conv_2_' + str(i + 1))(
+            splittensor(ratio_split=2, id_split=i)(conv_2)
+        ) for i in range(2)], mode='concat', concat_axis=1, name="conv_2")
+
+    conv_3 = MaxPooling2D((3, 3), strides=(2, 2))(conv_2)
+    conv_3 = crosschannelnormalization()(conv_3)
+    conv_3 = ZeroPadding2D((1, 1))(conv_3)
+    conv_3 = Convolution2D(384, 3, 3, activation='relu', name='conv_3', init='he_normal')(conv_3)
+
+    conv_4 = ZeroPadding2D((1, 1))(conv_3)
+    conv_4 = merge([
+        Convolution2D(192, 3, 3, activation="relu", init='he_normal', name='conv_4_' + str(i + 1))(
+            splittensor(ratio_split=2, id_split=i)(conv_4)
+        ) for i in range(2)], mode='concat', concat_axis=1, name="conv_4")
+
+    conv_5 = ZeroPadding2D((1, 1))(conv_4)
+    conv_5 = merge([
+        Convolution2D(128, 3, 3, activation="relu", init='he_normal', name='conv_5_' + str(i + 1))(
+            splittensor(ratio_split=2, id_split=i)(conv_5)
+        ) for i in range(2)], mode='concat', concat_axis=1, name="conv_5")
+
+    dense_1 = MaxPooling2D((3, 3), strides=(2, 2), name="convpool_5")(conv_5)
+
+    dense_1 = Flatten(name="flatten")(dense_1)
+    dense_1 = Dense(4096, activation='relu', name='dense_1', init='he_normal')(dense_1)
+    dense_2 = Dropout(0.5)(dense_1)
+    dense_2 = Dense(4096, activation='relu', name='dense_2', init='he_normal')(dense_2)
+    dense_3 = Dropout(0.5)(dense_2)
+    dense_3 = Dense(nb_classes, name='dense_3_new', init='he_normal')(dense_3)
+
+    prediction = Activation("softmax", name="softmax")(dense_3)
+
+    alexnet = Model(input=inputs, output=prediction)
+
+    return alexnet
 
 
 def cnn_test_dm(input_shape, n_classes):
