@@ -32,16 +32,10 @@ if __name__ == '__main__':
         vali_ratio = .2
         img_gen_config = {
             'classes': class_list,
-<<<<<<< Updated upstream
             'max_imgs_per_class': 1000,
             'gen_size_per_class': None, #int(500*(1-test_ratio-vali_ratio)),
             'vali_ratio': vali_ratio,
             'test_ratio': test_ratio,
-=======
-            'max_imgs_per_class': 6000,
-            'vali_ratio': .2,
-            'test_ratio': .2,
->>>>>>> Stashed changes
             'batch_size': 32,
             'data_augmentation': None, # include GAN imgs
             'train_img_randomization': {'horizontal_flip': True,
