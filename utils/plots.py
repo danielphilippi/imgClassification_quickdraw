@@ -133,7 +133,7 @@ def plot_cam(model, num_cat, y_true, y_pred_classes, test_set, class_names, titl
     for idx, cat in tuple_incorrect:
         idx_per_class_incorrect[cat].append(idx)
 
-    r = 4
+    r = 2
     c = num_cat
     #fig, axs = plt.subplots(nrows=c, ncols=r, sharey=True, figsize=(6.4 / 3 * 2, 4.8 * 2))
 
@@ -142,12 +142,12 @@ def plot_cam(model, num_cat, y_true, y_pred_classes, test_set, class_names, titl
 
     import matplotlib.gridspec as gridspec
 
-    fig = plt.figure(figsize=(10, 8))
+    fig = plt.figure(figsize=(10/2, 8))
     outer = gridspec.GridSpec(1, 2, wspace=0.2, hspace=0.2)
     fig.suptitle(title)
 
     idx_per_class_comb = [idx_per_class_correct, idx_per_class_incorrect]
-    outer_titles = ['Correct Classification', 'Wrong Classification']
+    outer_titles = ['Correct\nClassification', 'Wrong\nClassification']
 
     for o in range(2):
         inner = gridspec.GridSpecFromSubplotSpec(c, r,
@@ -177,7 +177,7 @@ def plot_cam(model, num_cat, y_true, y_pred_classes, test_set, class_names, titl
                     cam_array_resized = resize(cam_array, (28 * zoom, 28 * zoom))
 
                     axs.imshow(cam_array_resized, interpolation='nearest')
-                    if j != 0:
+                    if (j != 0) | (o == 1):
                         axs.axis('off')
                     axs.xaxis.set_visible(False)  # Hide only x axis
                     axs.set_ylabel(class_names[i], rotation='horizontal', ha='right', va='center')
