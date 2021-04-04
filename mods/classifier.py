@@ -221,17 +221,22 @@ def cnn_test_dm_layers2(input_shape, n_classes):
                input_shape=input_shape))
     cnn_model.add(Conv2D(16,(3,3),padding='same', activation='relu'))
     cnn_model.add(MaxPooling2D((2, 2)))
+    cnn_model.add(Dropout(0.2))
     cnn_model.add(Conv2D(32, (3, 3), padding='same',activation='relu'))
     cnn_model.add(Conv2D(32, (3, 3), padding='same',activation='relu'))
     cnn_model.add(MaxPooling2D((2, 2)))
+    cnn_model.add(Dropout(0.2))
     cnn_model.add(Conv2D(64, (3, 3), padding='same',activation='relu'))
     cnn_model.add(Conv2D(64, (3, 3), padding='same',activation='relu'))
     cnn_model.add(MaxPooling2D((2, 2)))
+    cnn_model.add(Dropout(0.2))
     cnn_model.add(Conv2D(128, (3, 3),padding='same',activation='relu'))
     cnn_model.add(Conv2D(128, (3, 3),padding='same',activation='relu'))
     cnn_model.add(MaxPooling2D((2, 2)))
+    cnn_model.add(Dropout(0.2))
     
     cnn_model.add(Flatten())
+    cnn_model.add(Dropout(0.2))
 
     #cnn_model.add(Dropout(0.5))  # add?
 
@@ -421,6 +426,29 @@ def cnn_combo_2(input_shape,n_classes):
     # model.summary()
     return cnn_model
     
-
-
+def cnn_final(input_shape, n_classes):
     
+    cnn_model = Sequential()
+
+    cnn_model.add(
+        Conv2D(32, (5,5), padding='same', activation='relu',
+               input_shape=input_shape))
+    cnn_model.add(AveragePooling2D((3, 3)))
+    cnn_model.add(Dropout(0.2))
+    cnn_model.add(Conv2D(64, (5,5), padding='same',activation='relu'))
+    cnn_model.add(AveragePooling2D((3, 3)))
+    cnn_model.add(Dropout(0.2))
+    cnn_model.add(Conv2D(128, (5,5),padding='same',activation='relu'))
+    cnn_model.add(AveragePooling2D((3, 3)))
+    cnn_model.add(Dropout(0.2))
+    cnn_model.add(Flatten())
+
+    cnn_model.add(Dropout(0.2))  # add?
+
+    cnn_model.add(Dense(512, activation='relu'))
+    cnn_model.add(Dense(n_classes, activation='softmax'))
+
+    # model.summary()
+    return cnn_model
+
+

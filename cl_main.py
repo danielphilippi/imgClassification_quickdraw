@@ -36,7 +36,7 @@ if __name__ == '__main__':
             'gen_size_per_class': None, #int(500*(1-test_ratio-vali_ratio)),
             'vali_ratio': vali_ratio,
             'test_ratio': test_ratio,
-            'batch_size': 32,
+            'batch_size': 256,
             'data_augmentation': None, # include GAN imgs
             'train_img_randomization': {'horizontal_flip': True,
                                         'vertical_flip':False,
@@ -45,7 +45,7 @@ if __name__ == '__main__':
         }
 
         model_config = {
-            'classifier': 'cnn_combo_2',
+            'classifier': 'cnn_final',
             'optimizer': {
                 # pass keyword dicts to optimizer
                 'adam': {
