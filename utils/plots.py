@@ -147,7 +147,7 @@ def plot_cam(model, num_cat, y_true, y_pred_classes, test_set, class_names, titl
     fig.suptitle(title)
 
     idx_per_class_comb = [idx_per_class_correct, idx_per_class_incorrect]
-    outer_titles = ['Correct Classification', 'Wrong classification']
+    outer_titles = ['Correct Classification', 'Wrong Classification']
 
     for o in range(2):
         inner = gridspec.GridSpecFromSubplotSpec(c, r,
