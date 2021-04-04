@@ -39,7 +39,7 @@ if __name__ == '__main__':
     }
 
     train_config = {
-        'n_epochs': 21,
+        'n_epochs': 2001,
         'batch_size': 100,
     }
 
