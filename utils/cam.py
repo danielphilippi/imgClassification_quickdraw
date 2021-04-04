@@ -86,8 +86,11 @@ def save_and_display_gradcam(img, heatmap, alpha=0.4):
 
     return superimposed_img
 
-if __name__ == '__main__':
 
+if __name__ == '__main__':
+    pass
+
+"""
     heatmap_test_path = 'data/test_heatmap/'
     if not os.path.exists(heatmap_test_path):
         os.mkdir(heatmap_test_path)
@@ -122,3 +125,4 @@ if __name__ == '__main__':
 
     cam_path = os.path.join(heatmap_test_path, 'cam.png')
     cam.save(cam_path)
+"""

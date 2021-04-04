@@ -296,6 +296,7 @@ class Classifier(ModelClass):
         self.report = None
         self.train_duration = None
         self.scores = None
+        self.cam = None
 
         self.train_acc = None
         self.test_acc = None
@@ -566,5 +567,8 @@ class Classifier(ModelClass):
         self.vali_acc = scores['vali']['vali_acc_last']
         self.test_acc = scores['test']['test_acc']
         hist_df = pd.DataFrame(self.history.history)
+
+        # cam
+        self.cam = plots.plot_cam(self.model, self.num_cat, y_true, y_pred_classes, test_set)
 
 

@@ -110,8 +110,8 @@ def plot_confusion_matrix(cm, classes,
 
     return fig
 
+
 def plot_cam(model, num_cat, y_true, y_pred_classes, test_set):
-    y_true[y_true == y_pred_classes]
 
     idx_correct = []
     idx_incorrect = []
@@ -133,10 +133,9 @@ def plot_cam(model, num_cat, y_true, y_pred_classes, test_set):
     for idx, cat in tuple_incorrect:
         idx_per_class_incorrect[cat].append(idx)
 
-    # TODO: leave blank if not available
-    r = 2
+    r = 3
     c = num_cat
-    fig, axs = plt.subplots(c, r, figsize=(6.4 / 3 * 2, 4.8 * 2), sharey=True)
+    fig, axs = plt.subplots(nrows=c, ncols=r, sharey='row', figsize=(6.4 / 3 * 2, 4.8 * 2))
 
     cnt = 0
     zoom = 4
@@ -166,7 +165,7 @@ def plot_cam(model, num_cat, y_true, y_pred_classes, test_set):
                 axs[i, j].axis('off')
                 axs[i, j].set_ylabel(i)
 
-    fig.subplots_adjust(wspace=0.00)
+    #fig.subplots_adjust(wspace=0.00)
     # fig.show()
     #fig.savefig('test.pdf')
     return fig
