@@ -111,7 +111,7 @@ def plot_confusion_matrix(cm, classes,
     return fig
 
 
-def plot_cam(model, num_cat, y_true, y_pred_classes, test_set):
+def plot_cam(model, num_cat, y_true, y_pred_classes, test_set, class_names):
 
     idx_correct = []
     idx_incorrect = []
@@ -133,9 +133,9 @@ def plot_cam(model, num_cat, y_true, y_pred_classes, test_set):
     for idx, cat in tuple_incorrect:
         idx_per_class_incorrect[cat].append(idx)
 
-    r = 3
+    r = 4
     c = num_cat
-    fig, axs = plt.subplots(nrows=c, ncols=r, sharey='row', figsize=(6.4 / 3 * 2, 4.8 * 2))
+    fig, axs = plt.subplots(nrows=c, ncols=r, sharey=True, figsize=(6.4 / 3 * 2, 4.8 * 2))
 
     cnt = 0
     zoom = 4
@@ -154,16 +154,24 @@ def plot_cam(model, num_cat, y_true, y_pred_classes, test_set):
                 cam_array_resized = resize(cam_array, (28 * zoom, 28 * zoom))
 
                 axs[i, j].imshow(cam_array_resized, interpolation='nearest')
-                axs[i, j].axis('off')
-                # axs[i, j].xaxis.set_visible(False)  # Hide only x axis
-                axs[i, j].set_ylabel(i)
+                if j != 0:
+                    axs[i, j].axis('off')
+                axs[i, j].xaxis.set_visible(False)  # Hide only x axis
+                axs[i, j].set_ylabel(class_names[i], rotation='horizontal', ha='right', va='center')
+                #axs[i, j].set_yticklabels([])
+                axs[i, j].tick_params(
+                    axis='y',  # changes apply to the x-axis
+                    which='both',  # both major and minor ticks are affected
+                    left=False,  # ticks along the bottom edge are off
+                    right=False,  # ticks along the top edge are off
+                    labelleft=False)  # labels along the bottom edge are off
 
                 cnt += 1
 
-                # fig.tight_layout()
+                fig.tight_layout()
             except IndexError:
                 axs[i, j].axis('off')
-                axs[i, j].set_ylabel(i)
+                axs[i, j].set_ylabel(class_names[i], rotation='horizontal', ha='right', va='center')
 
     #fig.subplots_adjust(wspace=0.00)
     # fig.show()
