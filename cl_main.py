@@ -28,11 +28,14 @@ if __name__ == '__main__':
         n_classes = None
         class_list = big_mamals[0:n_classes]
 
+        test_ratio = .2
+        vali_ratio = .2
         img_gen_config = {
             'classes': class_list,
             'max_imgs_per_class': 1000,
-            'vali_ratio': .2,
-            'test_ratio': .2,
+            'gen_size_per_class': None, #int(500*(1-test_ratio-vali_ratio)),
+            'vali_ratio': vali_ratio,
+            'test_ratio': test_ratio,
             'batch_size': 32,
             'data_augmentation': None, # include GAN imgs
             'train_img_randomization': {} # args passed to ImageDataGenerator

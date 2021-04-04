@@ -63,7 +63,7 @@ def to_img(array_4d):
     return new_p
 
 
-def _prepare_img_for_generator(classes, test_ratio, max_imgs_per_class, mode='array'):
+def _prepare_img_for_generator(classes, test_ratio, vali_ratio, max_imgs_per_class, mode='array'):
     seed(999)
     train_size = None
 
@@ -130,45 +130,119 @@ def _prepare_img_for_generator(classes, test_ratio, max_imgs_per_class, mode='ar
     if mode == 'dir':
         return 'ok'
     elif mode == 'array':
+        # shuffle
         seed(22)
-        rand_idx = sample([i for i in range(x_train.shape[0])], x_train.shape[0])
-        x_train, y_train = x_train[rand_idx], y_train[rand_idx]
+        rand_train_idx = sample([i for i in range(x_train.shape[0])], x_train.shape[0])
+        x_train, y_train = x_train[rand_train_idx], y_train[rand_train_idx]
 
         rand_idx = sample([i for i in range(x_test.shape[0])], x_test.shape[0])
         x_test, y_test = x_test[rand_idx], y_test[rand_idx]
 
+        # split train into train, vali
+        split_pos = int(len(rand_train_idx)*(1-vali_ratio))
+        train_idx = rand_train_idx[:split_pos]
+        vali_idx = rand_train_idx[split_pos:]
+        if len(list(set(train_idx) & set(vali_idx))) != 0:
+            raise Exception('Oooops')
+        x_train_f, y_train_f = x_train[train_idx].copy(), y_train[train_idx].copy()
+        x_vali, y_vali = x_train[vali_idx], y_train[vali_idx]
+
+        # onehot encode y
         num_classes = len(classes)
-        y_train = to_categorical(y_train, num_classes)
+        y_train_f = to_categorical(y_train_f, num_classes)
+        y_vali = to_categorical(y_vali, num_classes)
         y_test = to_categorical(y_test, num_classes)
 
-        return x_train, y_train, x_test, y_test, class_names
+        return x_train_f, y_train_f, x_vali, y_vali, x_test, y_test, class_names
 
 
-def build_set_generators(classes, max_imgs_per_class=10000, vali_ratio=.2, test_ratio=.2, batch_size=32, **kwargs):
-    x_train, y_train, x_test, y_test, class_names = _prepare_img_for_generator(
+def enrich_with_gan_data(x_train_org, y_train_org, class_names, gen_size_per_class):
+
+    # use train data of org imgs as init
+    if x_train_org.shape[0] != 0:
+        x_train = x_train_org.copy()
+        y_train = y_train_org.copy()
+    else:
+        print('Org data empty. Init new')
+        x_train = np.empty([0, 28, 28, 1])
+        y_train = np.empty([0])
+
+    # loop over class names
+    for cl_idx, class_name in class_names.items():
+        gan_data_file = os.path.join(GAN_DATA_PATH, f'{class_name}_synthetic.npy')
+        data = np.load(gan_data_file)
+
+        # make sure enough data
+        if gen_size_per_class > data.shape[0]:
+            raise Exception('Not enough artificial samples provided!')
+
+        # rescale to [0,1]
+        data = data.astype(np.float64)
+        data *= 1 / data.max()
+
+        # subset
+        x_train_1d = data[0:gen_size_per_class, :]
+
+        # merge data per class
+        x_train_tmp, y_train_tmp = reshape_1d(x_train_1d, cl_idx)
+        y_train_tmp = to_categorical(y_train_tmp, len(class_names))
+        x_train = np.concatenate((x_train, x_train_tmp), axis=0)
+        y_train = np.concatenate((y_train, y_train_tmp), axis=0)
+
+    # shuffle after all classes have been merged
+    seed(22)
+    rand_idx = sample([i for i in range(x_train.shape[0])], x_train.shape[0])
+    x_train, y_train = x_train[rand_idx], y_train[rand_idx]
+
+    return x_train, y_train
+
+
+def _prepare_img_for_generator_outer(classes, max_imgs_per_class=10000, gen_size_per_class=None, vali_ratio=.2, test_ratio=.2):
+    x_train_org, y_train_org, x_vali, y_vali, x_test, y_test, class_names = _prepare_img_for_generator(
         classes=classes,
         test_ratio=test_ratio,
+        vali_ratio=vali_ratio,
         max_imgs_per_class=max_imgs_per_class
+    )
+
+    if gen_size_per_class is not None:
+        x_train, y_train = enrich_with_gan_data(x_train_org, y_train_org, class_names, gen_size_per_class)
+    else:
+        x_train, y_train = x_train_org, y_train_org
+
+    return x_train, y_train, x_vali, y_vali, x_test, y_test, class_names
+
+
+def build_set_generators(classes, max_imgs_per_class=10000, gen_size_per_class=None, vali_ratio=.2, test_ratio=.2, batch_size=32, **kwargs):
+    x_train, y_train, x_vali, y_vali, x_test, y_test, class_names = _prepare_img_for_generator_outer(
+        classes=classes,
+        test_ratio=test_ratio,
+        max_imgs_per_class=max_imgs_per_class,
+        gen_size_per_class=gen_size_per_class,
+        vali_ratio=vali_ratio
     )
 
     train_datagen = ImageDataGenerator(
         # rescale=1. / 255,
-        validation_split=vali_ratio, **kwargs['train_img_randomization'])  # set validation split
+        validation_split=0.0, **kwargs['train_img_randomization'])  # set validation split
 
     train_generator = train_datagen.flow(
         x=x_train,
         y=y_train,
         shuffle=False,
-        batch_size=batch_size,
-        subset='training'
+        batch_size=batch_size
     )  # set as training data
 
-    validation_generator = train_datagen.flow(
-        x=x_train,
-        y=y_train,
+    vali_datagen = ImageDataGenerator(
+        # rescale=1. / 255,
+        validation_split=0.0)  # set validation split
+
+    validation_generator = vali_datagen.flow(
+        x=x_vali,
+        y=y_vali,
         shuffle=False,
-        batch_size=batch_size,
-        subset='validation')  # set as validation data
+        batch_size=batch_size
+    )  # set as validation data
 
     test_datagen = ImageDataGenerator(
         # rescale=1. / 255,

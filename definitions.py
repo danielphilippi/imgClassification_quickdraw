@@ -12,6 +12,8 @@ NPY_PATH = os.path.join(DATA_PATH, 'npy/')
 TRAIN_IMG_PATH = os.path.join(DATA_PATH, 'train/')
 TEST_IMG_PATH = os.path.join(DATA_PATH, 'test/')
 
+GAN_DATA_PATH = joinpath(DATA_PATH, 'gan/')
+
 for d in [DATA_PATH, NPY_PATH, TRAIN_IMG_PATH, TEST_IMG_PATH]:
     if not os.path.exists(d):
         os.mkdir(d)

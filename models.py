@@ -413,11 +413,12 @@ class Classifier(ModelClass):
         else:
             raise Exception('path to save model already exists!')
 
+        n_imgs = f"Org: {self.img_gen_config['max_imgs_per_class']} | GAN: {self.img_gen_config['gen_size_per_class']}"
         overview_new = pd.DataFrame({
             'run_id': [run_id],
             'path_rel': [model_path_rel],
             'n_classes': self.num_cat,
-            'n_images_per_class': self.img_gen_config['max_imgs_per_class'],
+            'n_images_per_class': n_imgs,
             'train_acc': round(self.train_acc, 4),
             'vali_acc': round(self.vali_acc, 4),
             'test_acc': round(self.test_acc, 4),
