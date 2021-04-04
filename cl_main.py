@@ -30,7 +30,7 @@ if __name__ == '__main__':
 
         img_gen_config = {
             'classes': class_list,
-            'max_imgs_per_class': 100,
+            'max_imgs_per_class': 1000,
             'vali_ratio': .2,
             'test_ratio': .2,
             'batch_size': 32,

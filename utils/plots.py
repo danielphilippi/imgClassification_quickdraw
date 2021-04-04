@@ -111,7 +111,7 @@ def plot_confusion_matrix(cm, classes,
     return fig
 
 
-def plot_cam(model, num_cat, y_true, y_pred_classes, test_set, class_names):
+def plot_cam(model, num_cat, y_true, y_pred_classes, test_set, class_names, title):
 
     idx_correct = []
     idx_incorrect = []
@@ -135,46 +135,71 @@ def plot_cam(model, num_cat, y_true, y_pred_classes, test_set, class_names):
 
     r = 4
     c = num_cat
-    fig, axs = plt.subplots(nrows=c, ncols=r, sharey=True, figsize=(6.4 / 3 * 2, 4.8 * 2))
+    #fig, axs = plt.subplots(nrows=c, ncols=r, sharey=True, figsize=(6.4 / 3 * 2, 4.8 * 2))
 
     cnt = 0
     zoom = 4
 
-    for i in range(c):
-        for j in range(r):
-            # j = j if j < len(idx_per_class_correct[i]) else 0
-            try:
-                img_idx = idx_per_class_correct[i][j]
-                img = test_set.x[img_idx].copy()
+    import matplotlib.gridspec as gridspec
 
-                heatmap = make_gradcam_heatmap(img.reshape(1, img.shape[0], img.shape[0], 1), model)
-                cam = save_and_display_gradcam(img.reshape(img.shape[0], img.shape[0], 1), heatmap, alpha=.9)
+    fig = plt.figure(figsize=(10, 8))
+    outer = gridspec.GridSpec(1, 2, wspace=0.2, hspace=0.2)
+    fig.suptitle(title)
 
-                cam_array = np.array(cam).copy()
-                cam_array_resized = resize(cam_array, (28 * zoom, 28 * zoom))
+    idx_per_class_comb = [idx_per_class_correct, idx_per_class_incorrect]
+    outer_titles = ['Correct Classification', 'Wrong classification']
 
-                axs[i, j].imshow(cam_array_resized, interpolation='nearest')
-                if j != 0:
-                    axs[i, j].axis('off')
-                axs[i, j].xaxis.set_visible(False)  # Hide only x axis
-                axs[i, j].set_ylabel(class_names[i], rotation='horizontal', ha='right', va='center')
-                #axs[i, j].set_yticklabels([])
-                axs[i, j].tick_params(
-                    axis='y',  # changes apply to the x-axis
-                    which='both',  # both major and minor ticks are affected
-                    left=False,  # ticks along the bottom edge are off
-                    right=False,  # ticks along the top edge are off
-                    labelleft=False)  # labels along the bottom edge are off
+    for o in range(2):
+        inner = gridspec.GridSpecFromSubplotSpec(c, r,
+                                                 subplot_spec=outer[o], wspace=0.1, hspace=0.1)
+        idx_per_class = idx_per_class_comb[o]
 
-                cnt += 1
+        # set outer titles
+        ax = plt.Subplot(fig, outer[o])
+        ax.set_title(outer_titles[o])
+        ax.axis('off')
+        fig.add_subplot(ax)
+        for i in range(c):
+            for j in range(r):
+                axs = plt.Subplot(fig, inner[i, j])
 
-                fig.tight_layout()
-            except IndexError:
-                axs[i, j].axis('off')
-                axs[i, j].set_ylabel(class_names[i], rotation='horizontal', ha='right', va='center')
+                # j = j if j < len(idx_per_class_correct[i]) else 0
+                try:
+                    #if i == 0: axs.set_title('dd')
+
+                    img_idx = idx_per_class[i][j]
+                    img = test_set.x[img_idx].copy()
+
+                    heatmap = make_gradcam_heatmap(img.reshape(1, img.shape[0], img.shape[0], 1), model)
+                    cam = save_and_display_gradcam(img.reshape(img.shape[0], img.shape[0], 1), heatmap, alpha=.9)
+
+                    cam_array = np.array(cam).copy()
+                    cam_array_resized = resize(cam_array, (28 * zoom, 28 * zoom))
+
+                    axs.imshow(cam_array_resized, interpolation='nearest')
+                    if j != 0:
+                        axs.axis('off')
+                    axs.xaxis.set_visible(False)  # Hide only x axis
+                    axs.set_ylabel(class_names[i], rotation='horizontal', ha='right', va='center')
+                    #axs[i, j].set_yticklabels([])
+                    axs.tick_params(
+                        axis='y',  # changes apply to the x-axis
+                        which='both',  # both major and minor ticks are affected
+                        left=False,  # ticks along the bottom edge are off
+                        right=False,  # ticks along the top edge are off
+                        labelleft=False)  # labels along the bottom edge are off
+
+                    cnt += 1
+                    fig.add_subplot(axs)
+
+                except IndexError:
+                    axs.axis('off')
+                    axs.set_ylabel(class_names[i], rotation='horizontal', ha='right', va='center')
 
     #fig.subplots_adjust(wspace=0.00)
     # fig.show()
     #fig.savefig('test.pdf')
+    fig.tight_layout()
+
     return fig
 

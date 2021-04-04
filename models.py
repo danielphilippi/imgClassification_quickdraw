@@ -302,6 +302,10 @@ class Classifier(ModelClass):
         self.test_acc = None
         self.vali_acc = None
 
+        self.test_set = None
+        self.y_true = None
+        self.y_pred_classes = None
+
     # Todo move definition to mods.classifier and pass to the class
     def build_classifier(self, classifier):
         cnn_model = classifier()
@@ -503,6 +507,13 @@ class Classifier(ModelClass):
             lr_plot = plots.plot_lr(self.history.history, title=f'Learning rate - {run_name}')
             lr_plot.savefig(os.path.join(model_path_abs, LR_PLOT_FILE_REL))
 
+        # save cam
+        cam = plots.plot_cam(
+            self.model, self.num_cat, self.y_true, self.y_pred_classes,
+            self.test_set, self.class_names, f'CAM - {run_name}'
+        )
+        cam.savefig(os.path.join(model_path_abs, CAM_PLOT_FILE_REL))
+
     def evaluate(self, test_set):
         # predict
         y_pred = self.model.predict(test_set) # ceil(num_of_test_samples / batch_size)
@@ -568,7 +579,9 @@ class Classifier(ModelClass):
         self.test_acc = scores['test']['test_acc']
         hist_df = pd.DataFrame(self.history.history)
 
-        # cam
-        self.cam = plots.plot_cam(self.model, self.num_cat, y_true, y_pred_classes, test_set)
+        # store for cam plot
+        self.test_set = test_set
+        self.y_true = y_true
+        self.y_pred_classes = y_pred_classes
 
 
