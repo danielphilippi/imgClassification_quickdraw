@@ -7,8 +7,8 @@ import warnings
 if __name__ == '__main__':
     # define classes if imgs to load
 
-    config_manual = True
-    config_path_rel = 'data/models/run_010/config.json'
+    config_manual = False # aka using the config from the file
+    config_path_rel = 'configs/config_cnn_gan_30.json'
     config_path = os.path.join(BASE_PATH, config_path_rel)
 
     if config_manual:

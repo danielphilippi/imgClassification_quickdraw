@@ -1,0 +1,72 @@
+{
+    "run": "best",
+    "version": 0.2,
+    "img_gen_config": {
+        "classes": [
+            "camel",
+            "cow",
+            "elephant",
+            "giraffe",
+            "horse",
+            "kangaroo",
+            "lion",
+            "panda",
+            "rhinoceros",
+            "tiger",
+            "zebra"
+        ],
+        "max_imgs_per_class": 4000,
+        "gen_size_per_class": 800,
+        "vali_ratio": 0.2,
+        "test_ratio": 0.2,
+        "batch_size": 256,
+        "data_augmentation": null,
+        "train_img_randomization": {
+
+        }
+    },
+    "model_config": {
+        "classifier": "cnn_final",
+        "optimizer": {
+            "adam": {}
+        },
+        "compiler": {
+            "loss": "categorical_crossentropy",
+            "metrics": [
+                "categorical_accuracy"
+            ]
+        }
+    },
+    "train_config": {
+        "n_epochs": 50,
+        "callbacks": {
+            "early_stopping": {
+                "monitor": "val_loss",
+                "mode": "min",
+                "verbose": 1,
+                "patience": 10,
+                "min_delta": 0.001
+            },
+            "reduce_lr_plateau": {
+                "monitor": "val_loss",
+                "mode": "min",
+                "verbose": 1,
+                "patience": 5,
+                "min_delta": 0.001
+            }
+        }
+    },
+    "class_names": {
+        "0": "camel",
+        "1": "cow",
+        "2": "elephant",
+        "3": "giraffe",
+        "4": "horse",
+        "5": "kangaroo",
+        "6": "lion",
+        "7": "panda",
+        "8": "rhinoceros",
+        "9": "tiger",
+        "10": "zebra"
+    }
+}
