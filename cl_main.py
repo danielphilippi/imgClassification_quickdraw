@@ -1,17 +1,8 @@
-from data_manager import build_set_generators
-from models import Classifier
-from mods.classifier import cnn_test_dp
+from utils.data_manager import build_set_generators
+from mods.models import Classifier
 import json
-import os
 from definitions import *
 import warnings
-from keras.optimizers import SGD
-from keras.callbacks import LearningRateScheduler
-from keras.callbacks import History
-from keras import losses
-from sklearn.model_selection import GridSearchCV
-from keras.wrappers.scikit_learn import KerasClassifier
-import numpy as np
 
 if __name__ == '__main__':
     # define classes if imgs to load

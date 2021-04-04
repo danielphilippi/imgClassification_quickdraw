@@ -1,11 +1,5 @@
-import models
-from data_manager import _prepare_img_for_generator
-import os
-
-from mods.generator import *
-from mods.discriminator import *
-
-from keras.models import load_model
+from mods import models
+from utils.data_manager import _prepare_img_for_generator
 
 if __name__ == '__main__':
     # Load the dataset
