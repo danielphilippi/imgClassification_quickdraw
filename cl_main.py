@@ -32,17 +32,26 @@ if __name__ == '__main__':
         vali_ratio = .2
         img_gen_config = {
             'classes': class_list,
+<<<<<<< Updated upstream
             'max_imgs_per_class': 1000,
             'gen_size_per_class': None, #int(500*(1-test_ratio-vali_ratio)),
             'vali_ratio': vali_ratio,
             'test_ratio': test_ratio,
+=======
+            'max_imgs_per_class': 6000,
+            'vali_ratio': .2,
+            'test_ratio': .2,
+>>>>>>> Stashed changes
             'batch_size': 32,
             'data_augmentation': None, # include GAN imgs
-            'train_img_randomization': {} # args passed to ImageDataGenerator
+            'train_img_randomization': {'horizontal_flip': True,
+                                        'vertical_flip':False,
+                                        'rotation_range':45
+                                        } # args passed to ImageDataGenerator
         }
 
         model_config = {
-            'classifier': 'cnn_test_dp',
+            'classifier': 'cnn_combo_2',
             'optimizer': {
                 # pass keyword dicts to optimizer
                 'adam': {
