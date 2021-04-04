@@ -1,5 +1,7 @@
 from matplotlib import pyplot as plt
 import numpy as np
+from utils.cam import make_gradcam_heatmap, save_and_display_gradcam
+from skimage.transform import resize
 
 
 # Todo: move to helper fcts module
@@ -107,3 +109,65 @@ def plot_confusion_matrix(cm, classes,
     # fig.show()
 
     return fig
+
+def plot_cam(model, num_cat, y_true, y_pred_classes, test_set):
+    y_true[y_true == y_pred_classes]
+
+    idx_correct = []
+    idx_incorrect = []
+
+    for idx in range(y_true.shape[0]):
+        if y_true[idx] == y_pred_classes[idx]:
+            idx_correct.append(idx)
+        else:
+            idx_incorrect.append(idx)
+
+    tuple_correct = list(zip(idx_correct, y_true[idx_correct]))  # (idx, cat)
+    tuple_incorrect = list(zip(idx_incorrect, y_true[idx_incorrect]))  # (idx, cat)
+
+    idx_per_class_correct = [[] for i in range(num_cat)]
+    for idx, cat in tuple_correct:
+        idx_per_class_correct[cat].append(idx)
+
+    idx_per_class_incorrect = [[] for i in range(num_cat)]
+    for idx, cat in tuple_incorrect:
+        idx_per_class_incorrect[cat].append(idx)
+
+    # TODO: leave blank if not available
+    r = 2
+    c = num_cat
+    fig, axs = plt.subplots(c, r, figsize=(6.4 / 3 * 2, 4.8 * 2), sharey=True)
+
+    cnt = 0
+    zoom = 4
+
+    for i in range(c):
+        for j in range(r):
+            # j = j if j < len(idx_per_class_correct[i]) else 0
+            try:
+                img_idx = idx_per_class_correct[i][j]
+                img = test_set.x[img_idx].copy()
+
+                heatmap = make_gradcam_heatmap(img.reshape(1, img.shape[0], img.shape[0], 1), model)
+                cam = save_and_display_gradcam(img.reshape(img.shape[0], img.shape[0], 1), heatmap, alpha=.9)
+
+                cam_array = np.array(cam).copy()
+                cam_array_resized = resize(cam_array, (28 * zoom, 28 * zoom))
+
+                axs[i, j].imshow(cam_array_resized, interpolation='nearest')
+                axs[i, j].axis('off')
+                # axs[i, j].xaxis.set_visible(False)  # Hide only x axis
+                axs[i, j].set_ylabel(i)
+
+                cnt += 1
+
+                # fig.tight_layout()
+            except IndexError:
+                axs[i, j].axis('off')
+                axs[i, j].set_ylabel(i)
+
+    fig.subplots_adjust(wspace=0.00)
+    # fig.show()
+    #fig.savefig('test.pdf')
+    return fig
+
