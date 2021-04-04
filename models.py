@@ -13,6 +13,8 @@ from keras.preprocessing.image import ImageDataGenerator
 from keras.callbacks import EarlyStopping, TensorBoard, LearningRateScheduler, ReduceLROnPlateau
 
 from mods.classifier import *
+from mods.generator import *
+from mods.discriminator import *
 
 import json
 from time import time
@@ -34,7 +36,6 @@ class ModelClass:
         self.confusion_matrix = None
         self.model = None
 
-    # TODO: picklyze this method
     def save_model(self):
         def save(model, model_name):
             model_path = "saved_model/%s.json" % model_name
@@ -76,11 +77,7 @@ class ModelClass:
         # if you do not have the last version, you must use predict_generator
         y_pred = self.model.predict(test_set, 63)  # ceil(num_of_test_samples / batch_size)
         y_pred = (y_pred > 0.5)
-        """print('Confusion Matrix')
-        self.confusion_matrix = confusion_matrix(test_set.classes, y_pred)
-        print(self.confusion_matrix)"""
         print('Classification Report')
-        # TODO: check if this work
         target_names = list(set(test_set.classes.keys))  # I'm pretty sure this is not the way
         self.report = classification_report(test_set.classes, y_pred, target_names=target_names)
         print(self.report)
@@ -95,12 +92,12 @@ class Generator(ModelClass):
         self.latent_dim = latent_dim
         self.optimizer = optimizer
         self.n_channels = n_channels
-        self.cnn = cnn(self.latent_dim, self.n_channels)
+        self.cnn = globals()[cnn](self.latent_dim, self.n_channels)
         self.model = self.build_generator()
 
         self.model.compile(
             optimizer=self.optimizer,
-            loss='binary_crossentropy'
+            loss=['binary_crossentropy', 'sparse_categorical_crossentropy']
         )
 
     def build_generator(self):
@@ -121,8 +118,6 @@ class Generator(ModelClass):
 
         return Model(inputs=[latent_space, input_cat], outputs=complete_generator)
 
-    # TODO check if parent evaluate function is valid
-
 
 class Discriminator(ModelClass):
     def __init__(self, input_shape, num_cat, optimizer, cnn):
@@ -130,7 +125,7 @@ class Discriminator(ModelClass):
         self.input_shape = input_shape
         self.num_cat = num_cat
         self.optimizer = optimizer
-        self.cnn = cnn(self.input_shape)
+        self.cnn = globals()[cnn](self.input_shape)
         self.model = self.build_discriminator()
 
         # First loss for fake-real classification. Second loss for categorical input classification
@@ -160,21 +155,32 @@ class Discriminator(ModelClass):
 
 
 class ACGAN(ModelClass):
-    def __init__(self, cnn_gen, cnn_dis, input_shape=(28, 28, 1), num_cat=400, latent_dim=100):
+    def __init__(self, img_gen_config, model_config, num_cat, class_names, input_shape=(28, 28, 1), latent_dim=100):
         super().__init__()
+        self.class_names = None
         self.input_shape = input_shape
         self.num_cat = num_cat
         self.latent_dim = latent_dim
+        self.class_names = class_names
 
         # Adam parameters suggested in https://arxiv.org/abs/1511.06434
         lr = 0.0002
         beta_1 = 0.5
         self.optimizer = Adam(lr, beta_1)
 
-        self.discriminator = Discriminator(self.input_shape, self.num_cat, self.optimizer, cnn_dis)
-        self.generator = Generator(self.input_shape, self.num_cat, self.latent_dim, self.optimizer, cnn_gen)
 
-        self.discriminator.model.trainable = False
+        self.img_gen_config = img_gen_config
+        self.model_config = model_config
+
+        self.discriminator = Discriminator(self.input_shape,
+                                           self.num_cat,
+                                           self.optimizer,
+                                           self.model_config['discriminator'])
+        self.generator = Generator(self.input_shape,
+                                   self.num_cat,
+                                   self.latent_dim,
+                                   self.optimizer,
+                                   self.model_config['generator'])
 
         noise_space = Input(shape=(self.latent_dim,))
         input_cat = Input(shape=(1,))
@@ -191,31 +197,41 @@ class ACGAN(ModelClass):
             loss=['binary_crossentropy', 'sparse_categorical_crossentropy']
         )
 
-    def train(self, x_train, y_train, n_epochs, batch_size, sample_interval=25):
-        # Real-fake arrays of labels
-        real_labels = np.ones((batch_size, 1))
-        fake_labels = np.zeros((batch_size, 1))
+        self.train_config = None
+        self.conf_mat = None
+        self.scores = None
 
-        for epoch in range(n_epochs):
+        self.acc = []
+        self.op_acc = []
+        self.d_loss = []
+        self.g_loss = []
+
+    def _train(self, x_train, y_train, train_config, sample_interval=250):
+        self.train_config = train_config
+        # Real-fake arrays of labels
+        real_labels = np.ones((self.train_config['batch_size'], 1))
+        fake_labels = np.zeros((self.train_config['batch_size'], 1))
+
+        for epoch in range(self.train_config['n_epochs']):
             ######################
             # Train discriminator#
             ######################
 
             # Vector of random noises
-            noise = np.random.normal(0, 1, (batch_size, self.latent_dim))
+            noise = np.random.normal(0, 1, (self.train_config['batch_size'], self.latent_dim))
             # Vector of labels of the random noises
-            noise_cat_labels = np.random.randint(0, self.num_cat, (batch_size, 1))
+            noise_cat_labels = np.random.randint(0, self.num_cat, (self.train_config['batch_size'], 1))
             # Generates fake input from noises to feed the discriminator
             fake_input = self.generator.model.predict([noise, noise_cat_labels])
 
             # Takes a random batch of real inputs
-            batch_index = np.random.randint(0, x_train.shape[0], batch_size)
-            real_input, real_cat_labels = x_train[batch_index], y_train[batch_index]
-
+            batch_index = np.random.randint(0, x_train.shape[0], self.train_config['batch_size'])
+            real_input, real_cat_labels = x_train[batch_index], np.argmax(y_train[batch_index], axis=1)
+            real_cat_labels = real_cat_labels.reshape(self.train_config['batch_size'], 1)
             # Predicts real_fake with discriminator & calculates discriminator loss function to back propagate
             d_loss_fake = self.discriminator.model.train_on_batch(fake_input, [fake_labels, noise_cat_labels])
             d_loss_real = self.discriminator.model.train_on_batch(real_input, [real_labels, real_cat_labels])
-            d_loss = 0.5 * (d_loss_real + d_loss_fake)
+            d_loss = 0.5 * np.add(d_loss_real, d_loss_fake)
 
             ###################
             # Train Generator #
@@ -226,21 +242,31 @@ class ACGAN(ModelClass):
 
             # Plot the progress
             print("%d [D loss: %f, acc.: %.2f%%, op_acc: %.2f%%] [G loss: %f]" % (
-                epoch, d_loss[0], 100 * d_loss[3], 100 * d_loss[4], g_loss[0]))
+                epoch, d_loss[0], 100 * d_loss[1], 100 * d_loss[2]/self.num_cat, g_loss[0]))
 
-            self.report(epoch, d_loss[0], 100 * d_loss[3], 100 * d_loss[4], g_loss[0])
-            # Saves model and generated images every `sample_interval` epochs
+            self.acc.append(d_loss[1])
+            self.op_acc.append(d_loss[2]/self.num_cat)
+            self.d_loss.append(d_loss[0])
+            self.g_loss.append(g_loss[0])
+
             if epoch % sample_interval == 0:
-                self.save_model()
+                #self.save_model()
+                #self.sample_images(epoch)
                 self.sample_images(epoch)
 
+    def train(self, x_train, y_train, train_config):
+        start = time()
+        self._train(x_train, y_train, train_config)
+        end = time()
+        self.train_duration = np.round(end - start, 2)
+
     def sample_images(self, epoch):
-        r, c = 10, 10
+        r, c = 5, self.num_cat
         noise = np.random.normal(0, 1, (r * c, self.latent_dim))
         sampled_labels = np.array([num for _ in range(r) for num in range(c)])
         gen_imgs = self.generator.model.predict([noise, sampled_labels])
-        # Rescale images 0 - 1
-        gen_imgs = 0.5 * gen_imgs + 0.5
+        # Rescale images 0 - 255
+        gen_imgs = gen_imgs * 255
 
         fig, axs = plt.subplots(r, c)
         cnt = 0
@@ -249,26 +275,170 @@ class ACGAN(ModelClass):
                 axs[i, j].imshow(gen_imgs[cnt, :, :, 0], cmap='gray')
                 axs[i, j].axis('off')
                 cnt += 1
-        fig.savefig("images/%d.png" % epoch)
+        fig.savefig("%d.png" % epoch)
         plt.close()
 
-    def save_model(self):
+    def sample_arrays(self, items_per_class):
+        r, c = items_per_class, self.num_cat
 
-        def save(model, model_name):
-            model_path = "saved_model/%s.json" % model_name
-            weights_path = "saved_model/%s_weights.hdf5" % model_name
-            options = {"file_arch": model_path,
-                       "file_weight": weights_path}
-            json_string = model.to_json()
-            open(options['file_arch'], 'w').write(json_string)
-            model.save_weights(options['file_weight'])
+        for class_name in list(self.class_names.values()):
+            noise = np.random.normal(0, 1, (r, self.latent_dim))
+            sampled_labels = np.array([c-1 for _ in range(r)])
+            gen_imgs = self.generator.model.predict([noise, sampled_labels])
+            # Rescale images 0 - 255
+            gen_imgs = gen_imgs * 255
 
-        save(self.generator.model, "generator")
-        save(self.discriminator.model, "discriminator")
+            with open(f'data/npy/{class_name}_synthetic.npy', 'wb') as f:
+                np.save(f, gen_imgs.reshape(r, 28*28))
 
-    # TODO
-    def evaluate(self):
-        pass
+    def _manage_model_overview(self):
+        overview = pd.read_csv(MODEL_OVERVIEW_FILE_ABS, sep=';')
+
+        if len(overview.run_id) == 0:
+            run_id = 1
+        else:
+            run_id = overview.run_id.max() + 1
+
+        run_name = f'run_{str(run_id).zfill(4)}'
+        model_path_rel = f'run_{str(run_id).zfill(4)}/'
+        model_path_abs = os.path.join(MODELS_PATH, model_path_rel)
+        if not os.path.exists(model_path_abs):
+            os.mkdir(model_path_abs)
+        else:
+            raise Exception('path to save model already exists!')
+
+        overview_new = pd.DataFrame({
+            'run_id': [run_id],
+            'path_rel': [model_path_rel],
+            'acc': round(self.acc[-1], 4),
+            'op_acc': round(self.op_acc[-1], 4),
+            'd_loss': round(self.d_loss[-1], 4),
+            'g_loss': round(self.g_loss[-1], 4),
+            'duration': [str(self.train_duration).replace('.', ',')],
+            'date': [datetime.now().strftime("%Y-%m-%d")],
+            'time': [datetime.now().strftime("%H:%M:%S")],
+            'user': [getpass.getuser()],
+            'compare': ["dis_4_mod3 less dropout"]
+        })
+
+        pd.concat([overview, overview_new]).to_csv(MODEL_OVERVIEW_FILE_ABS, index=False, sep=';')
+
+        return run_name, model_path_abs
+
+    def save(self):
+
+        run_name, model_path_abs = self._manage_model_overview()
+
+        # save config
+        config = {
+            'run': run_name.replace('run_', '2'),
+            'version': 0.1,
+            'img_gen_config': self.img_gen_config,
+            'model_config': self.model_config,
+            'train_config': self.train_config,
+            'class_names': self.class_names
+        }
+        with open(os.path.join(model_path_abs, CONFIG_FILE_REL), 'w') as fp:
+            json.dump(config, fp, indent=4)
+
+        # save model
+        self.model.save(os.path.join(model_path_abs, MODEL_FILE_REL))
+        self.discriminator.model.save(os.path.join(model_path_abs, "dis_"+MODEL_FILE_REL))
+        self.generator.model.save(os.path.join(model_path_abs, "gen_" + MODEL_FILE_REL))
+
+        # plot model as summary
+        with open(os.path.join(model_path_abs, SUMM_TEXT_FILE_REL+'generator.txt'), 'w') as f:
+            with redirect_stdout(f):
+                print(f'Summary {run_name} generator')
+                self.generator.model.summary()
+
+        with open(os.path.join(model_path_abs, SUMM_TEXT_FILE_REL+'discriminator.txt'), 'w') as f:
+            with redirect_stdout(f):
+                print(f'Summary {run_name} discriminator')
+                self.discriminator.model.summary()
+        """
+        # save history
+        with open(os.path.join(model_path_abs, HISTORY_FILE_REL), 'wb') as f:
+            pickle.dump(self.history.history, f)
+
+        # save report
+        report = {
+            'run': run_name.replace('run_', ''),
+            'keras_scores': self.scores,
+            'test_metrics': self.report
+        }
+
+        with open(os.path.join(model_path_abs, REPORT_FILE_REL), 'w') as fp:
+            json.dump(report, fp, indent=4)
+        """
+        # save history plot
+        hist_plot = plots.plot_history_gan(self.d_loss, self.g_loss, self.acc, self.op_acc, self.model_config,
+                                           title=f'History - {run_name}')
+        hist_plot.savefig(os.path.join(model_path_abs, HIST_PLOT_FILE_REL))
+
+        # save confusion matrix
+        pd.DataFrame(self.conf_mat).to_csv(os.path.join(model_path_abs, CM_FILE_REL), sep=';')
+
+        cm_plot = plots.plot_confusion_matrix(
+            cm=self.conf_mat,
+            cmap=plt.cm.Greys,
+            classes=self.class_names.values(),
+            title=f'CM - {run_name}',
+            normalize=False
+        )
+        cm_plot.savefig(os.path.join(model_path_abs, CM_PLOT_FILE_REL))
+
+    def evaluate(self, x_test, y_test):
+        # predict
+        _, y_pred = self.discriminator.model.predict(x_test)  # ceil(num_of_test_samples / batch_size)
+        y_pred = np.argmax(y_pred, axis=1)
+
+        # cm
+        print('Confusion Matrix')
+        y_true = np.argmax(y_test, axis=1)
+        self.conf_mat = confusion_matrix(y_true, y_pred)
+
+        # report
+        print('Classification Report')
+
+        for output_dict in [False, True]:
+            report = classification_report(
+                y_true,
+                y_pred,
+                labels=list(self.class_names.keys()),
+                target_names=list(self.class_names.values()),
+                output_dict=output_dict,
+                digits=2)
+
+            if output_dict:
+                self.report = report
+            else:
+                print(report)
+
+        # scores
+        scores = {}
+
+        scores['train'] = {
+            'd_loss_best': (
+                np.array(self.d_loss).min(),
+                np.array(self.d_loss).argmin()),
+            'g_loss_best': (
+                np.array(self.g_loss).min(),
+                np.array(self.g_loss).argmin()),
+            'd_loss_last': self.d_loss[-1],
+            'g_loss_last': self.g_loss[-1],
+            'acc_best': (
+                np.array(self.acc).max(),
+                np.array(self.acc).argmax()),
+            'acc_last': self.acc[-1],
+            'op_acc_best': (
+                np.array(self.op_acc).max(),
+                np.array(self.op_acc).argmax()),
+            'op_acc_last': self.op_acc[-1]
+        }
+
+        self.scores = pformat(scores)
+
 
 from keras.optimizers import Adam, SGD, RMSprop
 
@@ -584,5 +754,3 @@ class Classifier(ModelClass):
         self.test_set = test_set
         self.y_true = y_true
         self.y_pred_classes = y_pred_classes
-
-

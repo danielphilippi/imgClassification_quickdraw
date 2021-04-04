@@ -203,3 +203,26 @@ def plot_cam(model, num_cat, y_true, y_pred_classes, test_set, class_names, titl
 
     return fig
 
+
+def plot_history_gan(d_loss, g_loss, acc, op_acc, model_config, title):
+
+    epochs = [i for i in range(len(acc))]
+
+    # generate instance fig and return fig
+    fig, (ax1, ax2) = plt.subplots(nrows=2, sharex=True)
+    fig.suptitle(title)
+
+    ax1.plot(epochs, op_acc, c='dimgrey', marker='o', label='Class prediction acc')
+    ax1.plot(epochs, acc, c='grey', marker='x', label='Fake-Real acc')
+    ax1.set_title('Class prediction and Fake-Real accuracy')
+    ax1.set_ylim(0., 1.)
+    ax1.legend()
+
+    ax2.plot(epochs, d_loss, c='dimgrey', marker='o', label='Discriminator loss')
+    ax2.plot(epochs, g_loss, c='grey', marker='x', label='Generator loss')
+    ax2.set_title('Discriminator and generator loss')
+    ax2.legend()
+
+    plt.xlabel('epoch')
+    fig.show()
+    return fig
