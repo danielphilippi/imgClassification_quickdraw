@@ -10,6 +10,10 @@ import matplotlib.cm as cm
 
 import os
 
+"""
+implementation inspired by https://keras.io/examples/vision/grad_cam/
+"""
+
 
 def get_last_conv_layer_name(model):
     last_conv_layer_name = ''
